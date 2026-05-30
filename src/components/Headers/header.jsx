@@ -3,23 +3,17 @@ import './header.css'
 export default function Headers() {
   return (
     <header className="header">
-    <div className="logo">
-      <Link to="/">千歳科学技術大学-ルート検索サイト</Link>
-    </div>
-      <nav>
-        <ul className="nav-links">
-          <li>
-            <NavLink to="/">
-              ホーム
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/donation">
-              寄付
-            </NavLink>
-          </li>
-        </ul>
-      </nav>
+        <div className= "container header-inner">
+            <Link to="/" className="logo">
+            公立千歳科学技術大学-<span>ルート検索サイト</span>
+            </Link>
+            <nav className="nav">
+                <NavLink to="/donation" className="nav-link">
+                    寄付
+                </NavLink>
+            </nav>
+
+        </div>
     </header>
   )
 }
