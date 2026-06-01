@@ -13,6 +13,7 @@
   max-width: 960px;
   padding: 0 2rem;
   box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .hero-content {
@@ -51,9 +52,118 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   max-width: 480px;
   margin: 0 auto;
+}
+
+/* ===== 入力モードセレクター ===== */
+.input-selector {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-mode-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mode-tab:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.mode-tab.active {
+  border-color: #6366f1;
+  background: #6366f1;
+  color: #fff;
+}
+
+/* 現在地モード */
+.location-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.location-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: #fff;
+  border: 2px solid #6366f1;
+  border-radius: 10px;
+  color: #6366f1;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.location-btn:hover:not(:disabled) {
+  background: #6366f1;
+  color: #fff;
+}
+
+.location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.location-result {
+  font-size: 0.875rem;
+  color: #22a355;
+  font-weight: 600;
+}
+
+.location-error {
+  font-size: 0.875rem;
+  color: #e55;
+}
+
+/* リストモード */
+.list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.route-select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #222;
+  background: #ffffff;
+  color-scheme: light;
+  box-sizing: border-box;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  appearance: auto;
+}
+
+.route-select:focus {
+  border-color: #6366f1;
 }
 
 .route-label {
@@ -68,7 +178,9 @@
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   font-size: 1rem;
-  color: #333;
+  color: #222;
+  background: #ffffff;
+  color-scheme: light;
   box-sizing: border-box;
   transition: border-color 0.2s;
   outline: none;
@@ -76,6 +188,467 @@
 
 .route-input:focus {
   border-color: #6366f1;
+}
+
+.route-input-row {
+  display: flex;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.route-input-row .route-input {
+  flex: 1;
+}
+
+.route-search-btn {
+  padding: 0.8rem 1.4rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.route-search-btn:hover {
+  opacity: 0.85;
+}
+
+/* ===== 検索結果 ===== */
+.route-result {
+  margin-top: 2rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.result-section {
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.result-section:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.step-num {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  background: #6366f1;
+  border-radius: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #222;
+}
+
+/* サマリー */
+.route-summary {
+  background: #f8f8ff;
+  border: 1px solid #e0e0f5;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.route-summary-times {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 0.35rem;
+}
+
+.summary-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #888;
+  margin-left: 1px;
+}
+
+.summary-arrow {
+  color: #6366f1;
+}
+
+.route-summary-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* 経路ステップ */
+.transit-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.transit-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.transit-step--walk {
+  color: #666;
+}
+
+.step-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.step-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.step-line {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.875rem;
+  margin-bottom: 0.2rem;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.825rem;
+}
+
+.step-station {
+  color: #333;
+  font-weight: 600;
+  min-width: 5rem;
+}
+
+.step-time {
+  color: #6366f1;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.step-price {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.2rem;
+}
+
+.step-stations {
+  color: #555;
+  font-size: 0.825rem;
+}
+
+/* 乗り換え */
+.transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  color: #7a5700;
+}
+
+.transfer-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.transfer-text {
+  font-weight: 600;
+}
+
+.transfer-wait {
+  font-weight: 400;
+  margin-left: 0.3rem;
+}
+
+.transit-fallback {
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.3rem 0;
+}
+
+/* バス時刻 */
+.bus-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bus-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #333;
+}
+
+.bus-time.next {
+  background: #6366f1;
+  color: #fff;
+}
+
+.bus-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.bus-info {
+  font-size: 0.9rem;
+  color: #444;
+  line-height: 1.8;
+}
+
+.walk-info {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.loading {
+  font-size: 0.875rem;
+  color: #888;
+  padding: 0.3rem 0;
+}
+
+.transit-error {
+  font-size: 0.875rem;
+  color: #e55;
+  padding: 0.3rem 0;
+}
+
+.result-no-service {
+  padding: 1.5rem;
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+/* ===== Discord セクション ===== */
+.discord-section {
+  border-top: 1px solid #e5e5e5;
+  padding: 3rem 0;
+  background: #f4f4ff;
+}
+
+.discord-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: #fff;
+  border: 1px solid #e0e0f5;
+  border-radius: 16px;
+  padding: 2rem;
+  flex-wrap: wrap;
+}
+
+.discord-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.discord-text {
+  flex: 1;
+  min-width: 200px;
+  text-align: left;
+}
+
+.discord-text h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 0.4rem;
+}
+
+.discord-text p {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.7;
+}
+
+.discord-text code {
+  background: #f0f0ff;
+  color: #5865f2;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.discord-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  background: #5865f2;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.discord-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+}
+
+.discord-logo {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .discord-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  .discord-text {
+    text-align: center;
+  }
+  .discord-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.footer-link {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+/* ===== モバイル対応 ===== */
+@media (max-width: 480px) {
+  .hero-content {
+    padding: calc(var(--header-h) + 1.5rem) 0 3rem;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+
+  .direction-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .input-mode-tabs {
+    gap: 0.25rem;
+  }
+
+  .mode-tab {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.3rem;
+  }
+
+  .route-input-row {
+    flex-direction: column;
+  }
+
+  .route-search-btn {
+    width: 100%;
+  }
+
+  .route-result {
+    max-width: 100%;
+  }
+
+  .result-section {
+    padding: 0.9rem 1rem;
+  }
+
+  .route-summary-times {
+    font-size: 1rem;
+  }
+
+  .section-title {
+    font-size: 0.85rem;
+  }
+
+  .bus-times {
+    gap: 0.4rem;
+  }
+
+  .bus-time {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.6rem;
+  }
+
+  .discord-section {
+    padding: 2rem 0;
+  }
+
+  .discord-card {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .spacer {
+    height: 64px;
+  }
 }
 
 .hero-badge {
@@ -364,7 +937,7 @@
 .footer-logo {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #fff;
+  color: #000000;
   margin-bottom: 0.5rem;
 }
 

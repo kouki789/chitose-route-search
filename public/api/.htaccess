@@ -1,0 +1,7 @@
+Options -Indexes
+RewriteEngine On
+
+# /api/transit → transit.php
+# /api/geocode → geocode.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^/.]+)$ $1.php [L]

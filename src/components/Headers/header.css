@@ -4,10 +4,14 @@
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 2rem 2rem;
+  padding: 1.2rem 2rem;
   background: rgba(19, 30, 41, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .header { padding: 0.8rem 1rem; }
 }
 
 .header-inner {
@@ -18,7 +22,7 @@
 }
 
 .logo {
-  font-size: 1.9rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.5px;
@@ -35,7 +39,7 @@
 
 .nav-link {
   color: #909193;
-  font-size: 1.5rem;
+  font-size: 1rem;
   font-weight: 500;
   transition: color 0.2s;
   text-decoration: none;
