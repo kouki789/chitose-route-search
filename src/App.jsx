@@ -10,7 +10,6 @@ export function App() {
     <>
       <BrowserRouter>
         <Headers />
-        <div className="spacer"></div>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/donation" element={<Donation />} />

@@ -472,7 +472,8 @@ export default function Home() {
       <footer className="footer">
         <div className="container">
           <div className="footer-logo">公立千歳科学技術大学-ルート検索サイト</div>
-          <p>© 2026 公立千歳科学技術大学. All rights reserved by b2241760.</p>
+          <p>© 2026 公立千歳科学技術大学. All rights reserved.</p>
+          <p className="footer-credit">Supported by b2241760</p>
           <div className="footer-links">
             <Link to="/terms" className="footer-link">利用規約</Link>
             {/* <Link to="/donation" className="footer-link">寄付</Link> */}
