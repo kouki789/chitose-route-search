@@ -33,10 +33,10 @@ $headers = implode("\r\n", [
     "From: noreply@" . $_SERVER['HTTP_HOST'],
     "Reply-To: {$email}",
     "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
+    "Content-Transfer-Encoding: 8bit",
 ]);
 
-$result = mb_send_mail($to, $subject, base64_encode($body), $headers);
+$result = mb_send_mail($to, $subject, $body, $headers);
 
 if ($result) {
     echo json_encode(['ok' => true]);
