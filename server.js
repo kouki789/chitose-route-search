@@ -3,17 +3,35 @@ import axios from 'axios'
 
 const app = express()
 const PORT = 3001
-const YAHOO_URL = 'https://transit.yahoo.co.jp/search/print'
+const YAHOO_URL = 'https://transit.yahoo.co.jp/search/result'
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 // ── パース ──────────────────────────────────────────────────────────────────
+
+function getEdgeName(edge) {
+  if (edge.railName) return edge.railName
+  if (edge.lineName) return edge.lineName
+  if (edge.busLineName) return edge.busLineName
+  if (edge.airlineName) {
+    return edge.airlineName + (edge.flightNo ? ' ' + edge.flightNo : '')
+  }
+  return ''
+}
+
+function getEdgeType(edge, name) {
+  if (name.includes('徒歩')) return 'walk'
+  if (edge.airlineName || edge.flightNo) return 'air'
+  if (name.includes('便') && !name.includes('バス')) return 'air'
+  if (edge.busLineName || name.includes('バス')) return 'bus'
+  return 'transit'
+}
 
 function parseFeatureItem(item) {
   const s       = item.summaryInfo || {}
   const depTime = s.departureTime || ''
   const arrTime = s.arrivalTime   || ''
-  const totalTime  = s.totalTime  || null   // "29分" 形式
-  const totalPrice = s.totalPrice || null   // "1,040" 形式
+  const totalTime  = s.totalTime  || null
+  const totalPrice = s.totalPrice || null
 
   const edges = item.edgeInfoList || []
   const steps = []
@@ -22,21 +40,22 @@ function parseFeatureItem(item) {
   while (i < edges.length) {
     const cur  = edges[i]
     const next = edges[i + 1]
-    const rail = cur.railName || ''
+    const rail = getEdgeName(cur)
 
     if (!rail || !next) { i++; continue }
 
-    const sameRail = next.railName === rail
+    const sameRail = getEdgeName(next) === rail
+    const type  = getEdgeType(cur, rail)
     const depSt = cur.stationName  || ''
     const arrSt = next.stationName || ''
     const depT  = cur.timeInfo?.[0]?.time  || ''
     const arrT  = next.timeInfo?.[0]?.time || ''
     const price = cur.priceInfo?.price || null
 
-    if (rail.includes('徒歩') || rail.includes('歩')) {
+    if (type === 'walk') {
       steps.push({ type: 'walk', from: depSt, to: arrSt, dep: depT, arr: arrT, line: rail })
     } else {
-      steps.push({ type: 'transit', from: depSt, to: arrSt, dep: depT, arr: arrT, line: rail, price })
+      steps.push({ type, from: depSt, to: arrSt, dep: depT, arr: arrT, line: rail, price })
     }
 
     i += sameRail ? 2 : 1
@@ -45,16 +64,34 @@ function parseFeatureItem(item) {
   return { depTime, arrTime, totalTime, totalPrice, steps }
 }
 
+const FLIGHT_ROUTE_ERROR = 'FLIGHT_ROUTE'
+
 function parseYahooHtml(html) {
-  // __NEXT_DATA__ を regex で抽出（cheerio より安定）
   const m = html.match(/<script[^>]+id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (m) {
     try {
       const nd  = JSON.parse(m[1])
-      const nsp = nd?.props?.pageProps?.naviSearchParam
+      const pageProps = nd?.props?.pageProps || {}
+
+      // 通常の路線検索（featureInfoList から地上交通ルートを優先）
+      const nsp = pageProps.naviSearchParam
       if (nsp?.featureInfoList?.length > 0) {
-        const result = parseFeatureItem(nsp.featureInfoList[0])
-        if (result.depTime && result.arrTime) return result
+        // 飛行機ステップを含まないルートを優先、なければ最初のルートを使う
+        const ground = nsp.featureInfoList.find(item =>
+          !(item.edgeInfoList || []).some(e => !!(e.airlineName || e.flightNo))
+        )
+        const item = ground ?? nsp.featureInfoList[0]
+        const result = parseFeatureItem(item)
+        if (result.depTime || result.arrTime) return result
+      }
+
+      // Yahoo! 自身がルートなしと返している場合（queryState.errorList）
+      const qs = pageProps.queryState
+      if (qs?.errorList?.length > 0) return FLIGHT_ROUTE_ERROR
+
+      // 飛行機ルート検出（diainfoFlightParams が配列として存在する場合）
+      if (Array.isArray(pageProps.diainfoFlightParams) && pageProps.diainfoFlightParams.length > 0) {
+        return FLIGHT_ROUTE_ERROR
       }
     } catch (e) {
       console.error('[parse] __NEXT_DATA__ error:', e.message)
@@ -112,6 +149,13 @@ app.post('/api/contact', (req, res) => {
   console.log(`  内容:\n${message}\n`)
   res.json({ ok: true })
 })
+
+// Yahoo! 路線情報に存在しない空港 → 最寄り乗換駅 + 注記
+const AIRPORT_MAP = {
+  '丘珠空港': { station: 'さっぽろ', note: '丘珠空港はYahoo!路線情報に未対応のため、さっぽろ駅（空港バス 約35分）からのルートを表示しています。' },
+  '函館空港': { station: '函館',     note: '函館空港はYahoo!路線情報に未対応のため、函館駅（空港バス 約20分）からのルートを表示しています。' },
+  '旭川空港': { station: '旭川',     note: '旭川空港はYahoo!路線情報に未対応のため、旭川駅（空港バス 約35分）からのルートを表示しています。' },
+}
 
 function isAddress(s) {
   return s.includes('丁目') || s.includes('番地')
@@ -218,6 +262,12 @@ app.get('/api/transit', async (req, res) => {
   let { from, to, y, m, d, hh, m1, m2 } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from と to は必須です' })
 
+  let airportNote = null
+  const fromInfo = AIRPORT_MAP[from]
+  if (fromInfo) { airportNote = fromInfo.note; from = fromInfo.station; console.log(`[transit] airport: ${from} → ${fromInfo.station}`) }
+  const toInfo = AIRPORT_MAP[to]
+  if (toInfo) { airportNote = (airportNote ? airportNote + ' ' : '') + toInfo.note; to = toInfo.station; console.log(`[transit] airport: ${to} → ${toInfo.station}`) }
+
   if (isAddress(from)) {
     const station = await resolveAddress(from)
     if (station) { console.log(`[transit] resolved from: ${from} → ${station}`); from = station }
@@ -231,15 +281,18 @@ app.get('/api/transit', async (req, res) => {
 
   try {
     const { data } = await axios.get(YAHOO_URL, {
-      params: { from, to, y, m, d, hh, m1, m2, type: 1 },
+      params: { from, to, y, m, d, hh, m1, m2, type: 1, al: 1, shin: 1, ex: 0, hb: 1, lb: 1, sr: 1, ticket: 'ic', expkind: 1, ws: 3, s: 0 },
       headers: { 'User-Agent': UA },
       timeout: 15000,
     })
 
     const result = parseYahooHtml(data)
     if (!result) return res.status(404).json({ error: 'ルートが見つかりませんでした' })
+    if (result === FLIGHT_ROUTE_ERROR) {
+      return res.status(404).json({ error: '飛行機を利用するルートのため表示できません。飛行機で来る場合は「新千歳空港」を出発地として入力してください。' })
+    }
 
-    res.json(result)
+    res.json({ ...result, ...(airportNote ? { airportNote } : {}) })
   } catch (e) {
     console.error('[transit] error:', e.message)
     res.status(500).json({ error: 'データ取得に失敗しました: ' + e.message })

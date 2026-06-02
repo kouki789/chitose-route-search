@@ -434,6 +434,17 @@
   background: #eff6ff;
 }
 
+.airport-note {
+  font-size: 0.8rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
 .step-icon {
   flex-shrink: 0;
   font-size: 1rem;

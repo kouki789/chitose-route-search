@@ -15,6 +15,16 @@ if (!$from || !$to) {
     exit;
 }
 
+// ── Yahoo! に存在しない空港 → 最寄り乗換駅へのマッピング ─────────────────────
+$AIRPORT_MAP = [
+    '丘珠空港' => ['station' => 'さっぽろ', 'note' => '丘珠空港はYahoo!路線情報に未対応のため、さっぽろ駅（空港バス 約35分）からのルートを表示しています。'],
+    '函館空港' => ['station' => '函館',     'note' => '函館空港はYahoo!路線情報に未対応のため、函館駅（空港バス 約20分）からのルートを表示しています。'],
+    '旭川空港' => ['station' => '旭川',     'note' => '旭川空港はYahoo!路線情報に未対応のため、旭川駅（空港バス 約35分）からのルートを表示しています。'],
+];
+$airportNote = null;
+if (isset($AIRPORT_MAP[$from])) { $airportNote = $AIRPORT_MAP[$from]['note']; $from = $AIRPORT_MAP[$from]['station']; }
+if (isset($AIRPORT_MAP[$to]))   { $airportNote = ($airportNote ? $airportNote . ' ' : '') . $AIRPORT_MAP[$to]['note']; $to = $AIRPORT_MAP[$to]['station']; }
+
 // ── 住所検知 → 最寄り駅名に変換 ─────────────────────────────────────────────
 function isAddress($s) {
     return mb_strpos($s, '丁目') !== false || mb_strpos($s, '番地') !== false;
@@ -94,10 +104,12 @@ $params = http_build_query([
     'from' => $from, 'to' => $to,
     'y' => $y, 'm' => $m, 'd' => $d,
     'hh' => $hh, 'm1' => $m1, 'm2' => $m2,
-    'type' => 1,
+    'type' => 1, 'al' => 1, 'shin' => 1, 'ex' => 0,
+    'hb' => 1, 'lb' => 1, 'sr' => 1,
+    'ticket' => 'ic', 'expkind' => 1, 'ws' => 3, 's' => 0,
 ]);
 
-$url = 'https://transit.yahoo.co.jp/search/print?' . $params;
+$url = 'https://transit.yahoo.co.jp/search/result?' . $params;
 
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -127,12 +139,23 @@ if (!preg_match('/<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s', $html,
     exit;
 }
 
-$nd  = json_decode($matches[1], true);
-$nsp = isset($nd['props']['pageProps']['naviSearchParam']) ? $nd['props']['pageProps']['naviSearchParam'] : null;
+$nd         = json_decode($matches[1], true);
+$pageProps  = isset($nd['props']['pageProps']) ? $nd['props']['pageProps'] : [];
+$nsp        = isset($pageProps['naviSearchParam']) ? $pageProps['naviSearchParam'] : null;
 $featureList = isset($nsp['featureInfoList']) ? $nsp['featureInfoList'] : [];
 
 if (empty($featureList)) {
-    echo json_encode(['error' => 'ルートが見つかりませんでした']);
+    $flightMsg = '飛行機を利用するルートのため表示できません。飛行機で来る場合は「新千歳空港」を出発地として入力してください。';
+    // Yahoo! 自身がルートなしと返している場合
+    $qs = isset($pageProps['queryState']) ? $pageProps['queryState'] : [];
+    if (!empty($qs['errorList'])) {
+        echo json_encode(['error' => $flightMsg]);
+    // 飛行機ルート検出
+    } elseif (isset($pageProps['diainfoFlightParams']) && is_array($pageProps['diainfoFlightParams']) && count($pageProps['diainfoFlightParams']) > 0) {
+        echo json_encode(['error' => $flightMsg]);
+    } else {
+        echo json_encode(['error' => 'ルートが見つかりませんでした']);
+    }
     exit;
 }
 
@@ -156,6 +179,7 @@ function getEdgeName($edge) {
 function getEdgeType($edge, $name) {
     if (mb_strpos($name, '徒歩') !== false) return 'walk';
     if (!empty($edge['airlineName']) || !empty($edge['flightNo'])) return 'air';
+    if (mb_strpos($name, '便') !== false && mb_strpos($name, 'バス') === false) return 'air';
     if (!empty($edge['busLineName']) || mb_strpos($name, 'バス') !== false) return 'bus';
     return 'transit';
 }
@@ -189,10 +213,12 @@ while ($i < $cnt) {
     $i += $sameRail ? 2 : 1;
 }
 
-echo json_encode([
+$response = [
     'depTime'    => isset($summary['departureTime']) ? $summary['departureTime'] : '',
     'arrTime'    => isset($summary['arrivalTime'])   ? $summary['arrivalTime']   : '',
     'totalTime'  => isset($summary['totalTime'])     ? $summary['totalTime']     : null,
     'totalPrice' => isset($summary['totalPrice'])    ? $summary['totalPrice']    : null,
     'steps'      => $steps,
-], JSON_UNESCAPED_UNICODE);
+];
+if ($airportNote) $response['airportNote'] = $airportNote;
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

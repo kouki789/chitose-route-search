@@ -149,6 +149,9 @@ export default function RouteResult({ result }) {
           {result.transit1Error && <div className="transit-error">⚠️ {result.transit1Error}</div>}
           {result.transit1 && (
             <>
+              {result.transit1.airportNote && (
+                <div className="airport-note">⚠️ {result.transit1.airportNote}</div>
+              )}
               <RouteSummary
                 dep={result.transit1.depTime}
                 arr={result.transit1.arrTime}
@@ -216,6 +219,9 @@ export default function RouteResult({ result }) {
         {result.transit2Error && <div className="transit-error">⚠️ {result.transit2Error}</div>}
         {result.transit2 && (
           <>
+            {result.transit2.airportNote && (
+              <div className="airport-note">⚠️ {result.transit2.airportNote}</div>
+            )}
             <RouteSummary
               dep={result.transit2.depTime}
               arr={result.transit2.arrTime}
