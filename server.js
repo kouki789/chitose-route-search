@@ -99,6 +99,20 @@ app.get('/api/geocode', async (req, res) => {
   }
 })
 
+// お問い合わせ（ローカル開発用：コンソールに出力してOKを返す）
+app.use(express.json())
+app.post('/api/contact', (req, res) => {
+  const { name, email, message } = req.body || {}
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: '必須項目が入力されていません' })
+  }
+  console.log(`\n[contact] お問い合わせを受信しました`)
+  console.log(`  お名前: ${name}`)
+  console.log(`  メール: ${email}`)
+  console.log(`  内容:\n${message}\n`)
+  res.json({ ok: true })
+})
+
 app.get('/api/transit', async (req, res) => {
   const { from, to, y, m, d, hh, m1, m2 } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from と to は必須です' })

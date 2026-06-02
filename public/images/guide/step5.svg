@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" font-family="'Hiragino Kaku Gothic ProN','YuGothic','Meiryo',sans-serif">
+  <!-- Background -->
+  <rect width="800" height="450" fill="#f9f9fb"/>
+  <!-- Header bar -->
+  <rect width="800" height="54" fill="#131e29"/>
+  <text x="24" y="36" font-size="16" font-weight="800" fill="white">千歳ルート</text>
+  <text x="107" y="36" font-size="16" font-weight="800" fill="#6366f1">検索</text>
+
+  <!-- STEP badge -->
+  <rect x="340" y="72" width="120" height="24" rx="12" fill="rgba(99,102,241,0.12)"/>
+  <text x="400" y="88" text-anchor="middle" font-size="11" font-weight="700" fill="#6366f1" letter-spacing="1">STEP 5 / 6</text>
+
+  <!-- Title -->
+  <text x="400" y="118" text-anchor="middle" font-size="22" font-weight="900" fill="#111">バスのカウントダウン</text>
+
+  <!-- Bus section card (focused) -->
+  <rect x="130" y="132" width="540" height="220" rx="14" fill="white" stroke="#e5e5e5" stroke-width="1.5"/>
+
+  <!-- Section header -->
+  <circle cx="160" cy="162" r="13" fill="#6366f1"/>
+  <text x="160" y="167" text-anchor="middle" font-size="11" font-weight="800" fill="white">3</text>
+  <text x="185" y="158" font-size="12" font-weight="700" fill="#222">千歳駅前バス → 大学</text>
+  <text x="185" y="174" font-size="11" fill="#888">次の便のカウントダウンがリアルタイムで更新されます</text>
+
+  <!-- Divider -->
+  <line x1="130" y1="186" x2="670" y2="186" stroke="#f0f0f0" stroke-width="1"/>
+
+  <!-- === 通常状態 === -->
+  <text x="185" y="208" font-size="11" font-weight="700" fill="#555">通常（3分以上残っている場合）</text>
+  <!-- Normal chip -->
+  <rect x="185" y="215" width="120" height="36" rx="8" fill="#6366f1"/>
+  <text x="211" y="237" font-size="13" font-weight="700" fill="white">09:25</text>
+  <rect x="273" y="219" width="68" height="18" rx="4" fill="rgba(255,255,255,0.22)"/>
+  <text x="307" y="232" text-anchor="middle" font-size="10" font-weight="700" fill="white">あと12分</text>
+  <text x="323" y="237" font-size="11" fill="#6366f1" font-weight="600">← 白文字で残り時間</text>
+
+  <!-- Divider -->
+  <line x1="145" y1="264" x2="655" y2="264" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- === 急迫状態 (残り3分未満) === -->
+  <text x="185" y="285" font-size="11" font-weight="700" fill="#e55">残り3分未満（点滅・赤色警告）</text>
+  <!-- Urgent chip -->
+  <rect x="185" y="293" width="130" height="36" rx="8" fill="#6366f1"/>
+  <text x="211" y="315" font-size="13" font-weight="700" fill="white">09:25</text>
+  <rect x="277" y="297" width="78" height="18" rx="4" fill="rgba(255,80,80,0.85)"/>
+  <text x="316" y="310" text-anchor="middle" font-size="9.5" font-weight="700" fill="white">あと2分30秒</text>
+  <text x="335" y="315" font-size="11" fill="#e55" font-weight="600">← 赤色に変わり点滅します</text>
+
+  <!-- Divider -->
+  <line x1="145" y1="342" x2="655" y2="342" stroke="#f0f0f0" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- === 発車済み === -->
+  <text x="600" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="#888">発車済みになると...</text>
+  <text x="600" y="303" text-anchor="middle" font-size="10.5" fill="#aaa">自動的に次の便に</text>
+  <text x="600" y="319" text-anchor="middle" font-size="10.5" fill="#aaa">切り替わります</text>
+
+  <!-- Note -->
+  <text x="400" y="376" text-anchor="middle" font-size="11" fill="#888">カウントダウンは60秒ごとに更新されます</text>
+
+  <!-- Bottom note -->
+  <text x="400" y="410" text-anchor="middle" font-size="11" fill="#bbb">バスの時刻は「千歳駅前バス停」基準です（千歳科技大学行き）</text>
+</svg>

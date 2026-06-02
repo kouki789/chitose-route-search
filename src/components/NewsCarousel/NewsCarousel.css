@@ -1,0 +1,101 @@
+.news-carousel {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 560px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 1.5rem auto 0;
+  text-align: left;
+}
+
+.news-slide {
+  padding: 1rem 1.25rem 0.75rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.news-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.03em;
+}
+
+.news-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.news-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #222;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.news-text {
+  font-size: 0.82rem;
+  color: #555;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.news-date {
+  font-size: 0.72rem;
+  color: #bbb;
+  margin-top: 0.2rem;
+}
+
+/* コントロール */
+.news-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.news-arrow {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.news-arrow:hover { color: #6366f1; }
+
+.news-dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.news-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: none;
+  background: #ddd;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.news-dot.active {
+  background: #6366f1;
+  transform: scale(1.3);
+}

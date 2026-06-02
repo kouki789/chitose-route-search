@@ -10,6 +10,7 @@ import { fetchTransit, findOptimalBusResult } from '../../utils/routeLogic'
 import { useFavorites } from '../../hooks/useFavorites'
 import RouteResult from '../../components/RouteResult/RouteResult'
 import InputSelector from '../../components/InputSelector/InputSelector'
+import NewsCarousel from '../../components/NewsCarousel/NewsCarousel'
 
 export default function Home() {
   const [direction, setDirection] = useState('outbound')
@@ -141,6 +142,8 @@ export default function Home() {
             </form>
 
             {result && <RouteResult result={result} />}
+
+            <NewsCarousel />
 
             <div className="disclaimer">
               <div className="disclaimer-row">

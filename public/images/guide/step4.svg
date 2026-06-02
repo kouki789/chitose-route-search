@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" font-family="'Hiragino Kaku Gothic ProN','YuGothic','Meiryo',sans-serif">
+  <!-- Background -->
+  <rect width="800" height="450" fill="#f9f9fb"/>
+  <!-- Header bar -->
+  <rect width="800" height="54" fill="#131e29"/>
+  <text x="24" y="36" font-size="16" font-weight="800" fill="white">千歳ルート</text>
+  <text x="107" y="36" font-size="16" font-weight="800" fill="#6366f1">検索</text>
+
+  <!-- STEP badge -->
+  <rect x="340" y="72" width="120" height="24" rx="12" fill="rgba(99,102,241,0.12)"/>
+  <text x="400" y="88" text-anchor="middle" font-size="11" font-weight="700" fill="#6366f1" letter-spacing="1">STEP 4 / 6</text>
+
+  <!-- Title -->
+  <text x="400" y="118" text-anchor="middle" font-size="22" font-weight="900" fill="#111">結果を確認する</text>
+
+  <!-- Route result card -->
+  <rect x="130" y="132" width="540" height="285" rx="14" fill="white" stroke="#e5e5e5" stroke-width="1.5"/>
+
+  <!-- === Section 1: 出発地 → 千歳駅 === -->
+  <!-- Step circle -->
+  <circle cx="160" cy="162" r="13" fill="#6366f1"/>
+  <text x="160" y="167" text-anchor="middle" font-size="11" font-weight="800" fill="white">1</text>
+  <!-- Section title -->
+  <text x="185" y="158" font-size="12" font-weight="700" fill="#222">出発地 → 千歳駅</text>
+  <text x="185" y="173" font-size="10.5" fill="#888">路線・時刻・料金が表示されます</text>
+  <!-- Transit info box -->
+  <rect x="185" y="180" width="462" height="38" rx="6" fill="#fafafa"/>
+  <text x="198" y="196" font-size="11" fill="#333">🚃</text>
+  <text x="212" y="196" font-size="11" font-weight="700" fill="#333">JR北海道（快速エアポート）</text>
+  <text x="212" y="211" font-size="11" fill="#555">札幌 08:32 → 千歳 09:05　¥1,070</text>
+
+  <!-- Divider -->
+  <line x1="130" y1="226" x2="670" y2="226" stroke="#f0f0f0" stroke-width="1"/>
+
+  <!-- === Section 2: 徒歩 === -->
+  <circle cx="160" cy="250" r="13" fill="#6366f1"/>
+  <text x="160" y="255" text-anchor="middle" font-size="11" font-weight="800" fill="white">2</text>
+  <text x="185" y="246" font-size="12" font-weight="700" fill="#222">千歳駅 → 千歳駅前バス停</text>
+  <text x="185" y="262" font-size="11" fill="#888">🚶 徒歩 約5分</text>
+
+  <!-- Divider -->
+  <line x1="130" y1="278" x2="670" y2="278" stroke="#f0f0f0" stroke-width="1"/>
+
+  <!-- === Section 3: バス → 大学 === -->
+  <circle cx="160" cy="302" r="13" fill="#6366f1"/>
+  <text x="160" y="307" text-anchor="middle" font-size="11" font-weight="800" fill="white">3</text>
+  <text x="185" y="298" font-size="12" font-weight="700" fill="#222">千歳駅前バス → 大学</text>
+  <text x="185" y="314" font-size="11" fill="#888">次のバス便とカウントダウンが表示されます</text>
+
+  <!-- Bus time chips -->
+  <rect x="185" y="323" width="98" height="32" rx="7" fill="#6366f1"/>
+  <text x="209" y="342" font-size="12" font-weight="700" fill="white">09:25</text>
+  <rect x="256" y="325" width="54" height="16" rx="4" fill="rgba(255,255,255,0.22)"/>
+  <text x="283" y="337" text-anchor="middle" font-size="9.5" font-weight="700" fill="white">あと12分</text>
+
+  <rect x="291" y="323" width="72" height="32" rx="7" fill="#f3f4f6"/>
+  <text x="311" y="342" font-size="12" font-weight="600" fill="#555">09:55</text>
+
+  <rect x="371" y="323" width="72" height="32" rx="7" fill="#f3f4f6"/>
+  <text x="391" y="342" font-size="12" font-weight="600" fill="#555">10:25</text>
+
+  <!-- Label: 次便（青色） -->
+  <text x="185" y="372" font-size="10" fill="#6366f1" font-weight="700">← 次の便（青色表示）</text>
+
+  <!-- Divider -->
+  <line x1="130" y1="385" x2="670" y2="385" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="400" y="407" text-anchor="middle" font-size="10.5" fill="#aaa">3ステップで出発地から大学までの全行程が確認できます</text>
+
+  <!-- Right annotation: flow arrows -->
+  <text x="700" y="185" text-anchor="middle" font-size="10" fill="#6366f1" font-weight="700">① 路線</text>
+  <text x="700" y="252" text-anchor="middle" font-size="10" fill="#6366f1" font-weight="700">② 徒歩</text>
+  <text x="700" y="320" text-anchor="middle" font-size="10" fill="#6366f1" font-weight="700">③ バス</text>
+</svg>

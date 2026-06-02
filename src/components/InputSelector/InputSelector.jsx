@@ -65,7 +65,7 @@ export default function InputSelector({ value, onChange, label }) {
         <input
           className="route-input"
           type="text"
-          placeholder="例: 札幌駅"
+          placeholder="例: 札幌駅、中央区北1条西2丁目"
           value={value}
           onChange={e => onChange(e.target.value)}
         />

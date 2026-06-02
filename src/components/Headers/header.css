@@ -31,13 +31,18 @@
 
 .logo span { color: var(--blurple); }
 
+/* ── 共通 nav ── */
 .nav {
   display: flex;
   align-items: center;
+}
+
+/* ── PC ナビ ── */
+.nav--desktop {
   gap: 2rem;
 }
 
-.nav-link {
+.nav--desktop .nav-link {
   color: #909193;
   font-size: 1rem;
   font-weight: 500;
@@ -45,35 +50,74 @@
   text-decoration: none;
 }
 
-.nav-link:visited {
-  color: #909193;
+.nav--desktop .nav-link:visited { color: #909193; }
+.nav--desktop .nav-link:hover   { color: #fff; }
+.nav--desktop .nav-link.active  { color: #909193; }
+
+/* スマホでは非表示 */
+@media (max-width: 600px) {
+  .nav--desktop { display: none; }
 }
 
-.nav-link:hover {
+/* ── スマホ ドロップダウン ── */
+.nav--mobile {
+  display: none;
+  position: relative;
+}
+
+@media (max-width: 600px) {
+  .nav--mobile { display: flex; }
+}
+
+.menu-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
   color: #fff;
-}
-
-.nav-link.active {
-  color: #909193;
-}
-
-.nav-cta {
-  background: var(--blurple);
-  color: #fff;
-  padding: 0.5rem 1.3rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.7rem 0.35rem;
+  cursor: pointer;
+  line-height: 1;
   transition: background 0.2s;
 }
 
-.nav-cta:hover { background: var(--blurple-dark); }
-
-@media (max-width: 768px) {
-  .nav { gap: 0.75rem; }
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 480px) {
-  .logo { font-size: 0.95rem; }
-  .nav-link { font-size: 0.85rem; }
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: rgba(19, 30, 41, 0.97);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  min-width: 160px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+}
+
+.dropdown-link {
+  display: block;
+  padding: 0.85rem 1.25rem;
+  color: #ccc;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.15s, color 0.15s;
+}
+
+.dropdown-link:last-child {
+  border-bottom: none;
+}
+
+.dropdown-link:hover,
+.dropdown-link.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }

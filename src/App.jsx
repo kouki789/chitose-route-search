@@ -4,6 +4,7 @@ import Home from './pages/Home/Home'
 import Donation from './pages/donation/donation'
 import Terms from './pages/Terms/Terms'
 import Contact from './pages/Contact/Contact'
+import Guide from './pages/Guide/Guide'
 import './App.css'
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
           <Route path="/donation" element={<Donation />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/guide" element={<Guide />} />
         </Routes>
       </BrowserRouter>
     </>
