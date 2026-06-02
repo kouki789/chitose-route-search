@@ -255,8 +255,9 @@ app.get('/api/debug/geocode', async (req, res) => {
 })
 
 app.get('/api/transit', async (req, res) => {
-  let { from, to, y, m, d, hh, m1, m2 } = req.query
+  let { from, to, y, m, d, hh, m1, m2, type } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from と to は必須です' })
+  const searchType = parseInt(type) || 1
 
   let airportNote = null
   const fromInfo = AIRPORT_MAP[from]
@@ -281,7 +282,16 @@ app.get('/api/transit', async (req, res) => {
 
   try {
     const { data } = await axios.get(YAHOO_URL, {
-      params: { from, to, y, m, d, hh, m1, m2, type: 1, al: 1, shin: 1, ex: 0, hb: 1, lb: 1, sr: 1, ticket: 'ic', expkind: 1, ws: 3, s: 0 },
+      params: {
+        from, to, y, m, d, hh, m1, m2,
+        type: searchType,
+        ticket: 'ic', expkind: 1, ws: 3,
+        al: 1, shin: 1, hb: 1, lb: 1, sr: 1,
+        // 着時刻指定(type=4)と発時刻指定(type=1)でパラメータが異なる
+        ex: searchType === 4 ? 1 : 0,
+        s:  searchType === 4 ? 1 : 0,
+        ...(searchType === 4 ? { userpass: 1 } : {}),
+      },
       headers: { 'User-Agent': UA },
       timeout: 15000,
     })

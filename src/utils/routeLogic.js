@@ -2,7 +2,8 @@ import { findNextBuses } from './schedule'
 
 // ── Yahoo! 路線情報 API ────────────────────────────────────────────────────
 
-export async function fetchTransit(from, to, departure) {
+// searchType: 1=出発時刻指定(デフォルト) / 4=到着時刻指定
+export async function fetchTransit(from, to, departure, searchType = 1) {
   const y  = departure.getFullYear()
   const mo = departure.getMonth() + 1
   const d  = departure.getDate()
@@ -10,7 +11,7 @@ export async function fetchTransit(from, to, departure) {
   const min = departure.getMinutes()
   const m1 = Math.floor(min / 10)
   const m2 = min % 10
-  const params = new URLSearchParams({ from, to, y, m: mo, d, hh, m1, m2 })
+  const params = new URLSearchParams({ from, to, y, m: mo, d, hh, m1, m2, type: searchType })
   let res
   try {
     res = await fetch(`/api/transit?${params}`)

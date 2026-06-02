@@ -9,6 +9,7 @@ $d    = isset($_GET['d'])    ? intval($_GET['d'])  : intval(date('j'));
 $hh   = isset($_GET['hh'])   ? intval($_GET['hh']) : intval(date('G'));
 $m1   = isset($_GET['m1'])   ? intval($_GET['m1']) : 0;
 $m2   = isset($_GET['m2'])   ? intval($_GET['m2']) : 0;
+$type = isset($_GET['type']) ? intval($_GET['type']) : 1;
 
 if (!$from || !$to) {
     echo json_encode(['error' => 'from と to は必須です']);
@@ -105,14 +106,19 @@ if (isAddress($to)) {
     if ($station) $to = $station;
 }
 
-$params = http_build_query([
+$isArrival = ($type === 4);
+$params = http_build_query(array_filter([
     'from' => $from, 'to' => $to,
     'y' => $y, 'm' => $m, 'd' => $d,
     'hh' => $hh, 'm1' => $m1, 'm2' => $m2,
-    'type' => 1, 'al' => 1, 'shin' => 1, 'ex' => 0,
-    'hb' => 1, 'lb' => 1, 'sr' => 1,
-    'ticket' => 'ic', 'expkind' => 1, 'ws' => 3, 's' => 0,
-]);
+    'type' => $type,
+    'ticket' => 'ic', 'expkind' => 1, 'ws' => 3,
+    'al' => 1, 'shin' => 1, 'hb' => 1, 'lb' => 1, 'sr' => 1,
+    // 着時刻指定(type=4)と発時刻指定(type=1)でパラメータが異なる
+    'ex'       => $isArrival ? 1 : 0,
+    's'        => $isArrival ? 1 : 0,
+    'userpass' => $isArrival ? 1 : null,
+], fn($v) => $v !== null));
 
 $url = 'https://transit.yahoo.co.jp/search/result?' . $params;
 

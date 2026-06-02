@@ -38,42 +38,43 @@ export default function Home() {
       setResult(base)
 
       try {
-        const transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, now)
+        let transit1
+        const busDep = selectedBus ? toDateTime(now, selectedBus[0]) : null
+
+        if (selectedBus) {
+          // type=4: 千歳駅への着時刻 = バス出発 − 乗換時間 を指定して逆算検索
+          const requiredArrival = new Date(busDep.getTime() - TRANSFER_MIN * 60000)
+          transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, requiredArrival, 4)
+        } else {
+          transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, now)
+        }
 
         let busResult
-        if (selectedBus) {
-          const busDep = toDateTime(now, selectedBus[0])
-          let compatible = true
-          if (transit1.arrTime) {
-            const [ah, am] = transit1.arrTime.split(':').map(Number)
-            const stationArrival = new Date(now)
-            stationArrival.setHours(ah, am, 0, 0)
-            if (stationArrival < now) stationArrival.setDate(stationArrival.getDate() + 1)
-            const busStopArrival = new Date(stationArrival.getTime() + TRANSFER_MIN * 60000)
-            compatible = busStopArrival <= busDep
-          }
-          busResult = {
-            buses: [{
-              dep:    busDep,
-              kenArr: toDateTime(now, selectedBus[1]),
-              honArr: toDateTime(now, selectedBus[2]),
-              stop:   selectedBus[3],
-            }],
-            status: compatible ? 'good' : 'tight',
-            waitMin: 0,
-            message: compatible
-              ? `指定バス（${selectedBus[0]}発）で乗車`
-              : `⚠️ ${selectedBus[0]}発のバスに間に合わない可能性があります`,
-          }
-        } else if (transit1.arrTime) {
+        if (transit1.arrTime) {
           const [ah, am] = transit1.arrTime.split(':').map(Number)
           const stationArrival = new Date(now)
           stationArrival.setHours(ah, am, 0, 0)
           if (stationArrival < now) stationArrival.setDate(stationArrival.getDate() + 1)
           const busStopArrival = new Date(stationArrival.getTime() + TRANSFER_MIN * 60000)
-          busResult = findOptimalBusResult(busStopArrival, timetable)
+
+          if (selectedBus && busStopArrival <= busDep) {
+            // 指定バスに間に合う
+            busResult = {
+              buses: [{ dep: busDep, kenArr: toDateTime(now, selectedBus[1]), honArr: toDateTime(now, selectedBus[2]), stop: selectedBus[3] }],
+              status: 'good', waitMin: 0,
+              message: `指定バス（${selectedBus[0]}発）で乗車`,
+            }
+          } else if (selectedBus) {
+            // 指定バスに間に合わない（Yahoo!が制約を満たせなかった）→ 次の便を自動表示
+            busResult = findOptimalBusResult(busStopArrival, timetable)
+            busResult = { ...busResult, message: `⚠️ ${selectedBus[0]}発には間に合わないため、次の便を表示しています` }
+          } else {
+            busResult = findOptimalBusResult(busStopArrival, timetable)
+          }
         } else {
-          busResult = findOptimalBusResult(new Date(now.getTime() + TRANSFER_MIN * 60000), timetable)
+          busResult = selectedBus
+            ? { buses: [{ dep: busDep, kenArr: toDateTime(now, selectedBus[1]), honArr: toDateTime(now, selectedBus[2]), stop: selectedBus[3] }], status: 'good', waitMin: 0, message: `指定バス（${selectedBus[0]}発）で乗車` }
+            : findOptimalBusResult(new Date(now.getTime() + TRANSFER_MIN * 60000), timetable)
         }
 
         setResult(r => ({ ...r, transit1Loading: false, transit1, busResult }))
