@@ -176,17 +176,10 @@ function RouteResult({ result }) {
             <span className="step-num">③</span>
             <span className="section-title">{BUS_STOP} → {UNIVERSITY}</span>
           </div>
-          {result.nextBuses.length > 0 ? (
-            <div className="bus-times">
-              {result.nextBuses.map((bus, i) => (
-                <span key={i} className={`bus-time ${i === 0 ? 'next' : ''}`}>
-                  {i === 0 && <span className="bus-label">次便</span>}
-                  {formatTime(bus)}
-                </span>
-              ))}
-            </div>
+          {result.busResult ? (
+            <BusResultView br={result.busResult} />
           ) : (
-            <div className="transit-error">⚠️ 本日の便はすべて終了しています。</div>
+            <div className="loading">検索中…</div>
           )}
         </div>
       </div>
@@ -239,6 +232,49 @@ function RouteResult({ result }) {
             />
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── バス最適化ロジック ─────────────────────────────────────────────────────
+
+function findOptimalBusResult(busStopArrival, timetable) {
+  const buses = findNextBuses(busStopArrival, timetable, 2)
+  if (!buses.length) {
+    return { buses: [], status: 'none', waitMin: 0, message: '本日の便はすべて終了しています' }
+  }
+  const waitMin = Math.round((buses[0] - busStopArrival) / 60000)
+
+  if (waitMin < 5) {
+    return { buses, status: 'tight', waitMin,
+      message: `乗り換え時間が約${waitMin}分と短めです。次の便も表示しています` }
+  } else if (waitMin <= 9) {
+    return { buses: [buses[0]], status: 'good', waitMin,
+      message: `乗り換え良好（バス停で約${waitMin}分待ち）` }
+  } else {
+    return { buses, status: 'long', waitMin,
+      message: `バス停で約${waitMin}分待ちになります` }
+  }
+}
+
+function BusResultView({ br }) {
+  if (br.status === 'none') {
+    return <div className="transit-error">⚠️ {br.message}</div>
+  }
+  const statusClass = { good: 'bus-status--good', tight: 'bus-status--tight', long: 'bus-status--long' }[br.status] ?? ''
+  return (
+    <div>
+      {br.message && (
+        <div className={`bus-status ${statusClass}`}>{br.message}</div>
+      )}
+      <div className="bus-times">
+        {br.buses.map((bus, i) => (
+          <span key={i} className={`bus-time ${i === 0 ? 'next' : ''}`}>
+            {i === 0 && <span className="bus-label">{br.status === 'tight' ? '⚠️ 次便' : '次便'}</span>}
+            {formatTime(bus)}
+          </span>
+        ))}
       </div>
     </div>
   )
@@ -369,18 +405,34 @@ export default function Home() {
       const timetable = getSchedule(now)
       if (!timetable.length) { setResult({ type: 'outbound', noService: true }); return }
 
-      const busStopArrival = new Date(now.getTime() + TRANSFER_MIN * 60000)
-      const nextBuses = findNextBuses(busStopArrival, timetable, 3)
-
-      // 先に骨格を表示してから API 呼び出し
-      const base = { type: 'outbound', origin: inputValue.trim(), nextBuses, transit1Loading: true, transit1: null, transit1Error: null }
+      // 骨格を表示（バスは取得後に確定）
+      const base = { type: 'outbound', origin: inputValue.trim(), busResult: null, transit1Loading: true, transit1: null, transit1Error: null }
       setResult(base)
 
       try {
         const transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, now)
-        setResult(r => ({ ...r, transit1Loading: false, transit1 }))
-      } catch {
-        setResult(r => ({ ...r, transit1Loading: false, transit1Error: '路線情報を取得できませんでした' }))
+
+        // 実際の千歳駅着時刻からバス停到着を計算
+        let busResult
+        if (transit1.arrTime) {
+          const [ah, am] = transit1.arrTime.split(':').map(Number)
+          const stationArrival = new Date(now)
+          stationArrival.setHours(ah, am, 0, 0)
+          if (stationArrival < now) stationArrival.setDate(stationArrival.getDate() + 1)
+          const busStopArrival = new Date(stationArrival.getTime() + TRANSFER_MIN * 60000)
+          busResult = findOptimalBusResult(busStopArrival, timetable)
+        } else {
+          // arrTime が取れない場合は現在時刻ベースでフォールバック
+          const busStopArrival = new Date(now.getTime() + TRANSFER_MIN * 60000)
+          busResult = findOptimalBusResult(busStopArrival, timetable)
+        }
+
+        setResult(r => ({ ...r, transit1Loading: false, transit1, busResult }))
+      } catch (e) {
+        // API 失敗時も現在時刻ベースでバスだけは表示
+        const busStopArrival = new Date(now.getTime() + TRANSFER_MIN * 60000)
+        const busResult = findOptimalBusResult(busStopArrival, timetable)
+        setResult(r => ({ ...r, transit1Loading: false, transit1Error: e.message, busResult }))
       }
 
     } else {
@@ -451,8 +503,7 @@ export default function Home() {
               <h2>Discord Bot でも使えます</h2>
               <p>
                 このサイトと同じルート検索ロジックを搭載した Discord Bot があります。
-                サーバーに追加すると <code>/route</code>・<code>/return</code> コマンドで
-                いつでもルートを確認できます。
+                サーバーに追加すると <code>/route</code> ・ <code>/return</code> コマンドでいつでもルートを確認できます。
               </p>
             </div>
             <a
