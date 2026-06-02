@@ -113,9 +113,119 @@ app.post('/api/contact', (req, res) => {
   res.json({ ok: true })
 })
 
+function isAddress(s) {
+  return s.includes('丁目') || s.includes('番地')
+}
+
+const addressCache = new Map()
+
+async function resolveAddress(address) {
+  if (addressCache.has(address)) {
+    const cached = addressCache.get(address)
+    console.log(`[cache] ${address} → ${cached}`)
+    return cached
+  }
+  // Step 1: 住所 → 座標 (Nominatim) — 複数フォーマットを試す
+  let lat, lon
+  const stripped = address.replace(/\d+-\d+$/, '').trim()  // 末尾の番地番号を除去
+  const candidates = [
+    stripped,
+    '北海道' + stripped,
+    address,
+    '北海道' + address,
+  ]
+  for (const q of candidates) {
+    try {
+      const { data } = await axios.get('https://nominatim.openstreetmap.org/search', {
+        params: { q, format: 'json', limit: 1, countrycodes: 'jp' },
+        headers: { 'User-Agent': 'chitose-route-search/1.0 (educational project)' },
+        timeout: 5000,
+      })
+      if (data[0]?.lat) {
+        lat = parseFloat(data[0].lat)
+        lon = parseFloat(data[0].lon)
+        console.log(`[nominatim] "${q}" → (${lat}, ${lon})`)
+        break
+      }
+      console.log(`[nominatim] 結果なし: "${q}"`)
+    } catch (e) { console.error('[nominatim] error:', e.message) }
+  }
+  if (!lat) { console.log('[nominatim] 全候補で結果なし'); return null }
+
+  // Step 2: 座標 → 最寄り駅名 (Overpass API)
+  try {
+    const query = `[out:json][timeout:8];(node["railway"="station"](around:2000,${lat},${lon});node["railway"="stop"](around:2000,${lat},${lon});node["railway"="halt"](around:2000,${lat},${lon}););out body;`
+    console.log(`[overpass] querying around (${lat},${lon})`)
+    const { data } = await axios.post('https://overpass-api.de/api/interpreter', query, {
+      headers: { 'Content-Type': 'text/plain', 'User-Agent': 'chitose-route-search/1.0' },
+      timeout: 10000,
+    })
+    console.log(`[overpass] found ${data.elements?.length ?? 0} nodes`)
+    if (!data.elements?.length) return null
+
+    let nearest = null, minDist = Infinity
+    for (const el of data.elements) {
+      const d = Math.hypot(el.lat - lat, el.lon - lon)
+      if (d < minDist) { minDist = d; nearest = el }
+    }
+    const name = nearest?.tags?.name || null
+    console.log(`[geocode] ${address} → (${lat},${lon}) → ${name}  (railway=${nearest?.tags?.railway})`)
+    if (name) addressCache.set(address, name)
+    return name
+  } catch (e) {
+    console.error('[overpass] error:', e.message)
+    return null
+  }
+}
+
+// デバッグ: 住所ジオコーディングの各ステップを確認
+app.get('/api/debug/geocode', async (req, res) => {
+  const { q } = req.query
+  if (!q) return res.json({ error: 'q パラメータが必要です' })
+
+  // Nominatim
+  let lat, lon, nominatimRaw
+  try {
+    const { data } = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: { q, format: 'json', limit: 1, countrycodes: 'jp' },
+      headers: { 'User-Agent': 'chitose-route-search/1.0 (educational project)' },
+      timeout: 5000,
+    })
+    nominatimRaw = data[0] || null
+    if (data[0]?.lat) { lat = parseFloat(data[0].lat); lon = parseFloat(data[0].lon) }
+  } catch (e) { return res.json({ error: 'Nominatim失敗: ' + e.message }) }
+
+  if (!lat) return res.json({ nominatim: nominatimRaw, error: '座標が取得できませんでした' })
+
+  // Overpass
+  let overpassNodes
+  try {
+    const query = `[out:json][timeout:8];(node["railway"="station"](around:2000,${lat},${lon});node["railway"="stop"](around:2000,${lat},${lon});node["railway"="halt"](around:2000,${lat},${lon}););out body;`
+    const { data } = await axios.post('https://overpass-api.de/api/interpreter', query, {
+      headers: { 'Content-Type': 'text/plain', 'User-Agent': 'chitose-route-search/1.0' },
+      timeout: 10000,
+    })
+    overpassNodes = (data.elements || []).map(el => ({
+      name: el.tags?.name, railway: el.tags?.railway,
+      dist: Math.round(Math.hypot(el.lat - lat, el.lon - lon) * 111000),
+    })).sort((a, b) => a.dist - b.dist).slice(0, 5)
+  } catch (e) { return res.json({ nominatim: nominatimRaw, lat, lon, error: 'Overpass失敗: ' + e.message }) }
+
+  res.json({ input: q, lat, lon, nominatim: nominatimRaw?.display_name, nearestStations: overpassNodes })
+})
+
 app.get('/api/transit', async (req, res) => {
-  const { from, to, y, m, d, hh, m1, m2 } = req.query
+  let { from, to, y, m, d, hh, m1, m2 } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from と to は必須です' })
+
+  if (isAddress(from)) {
+    const station = await resolveAddress(from)
+    if (station) { console.log(`[transit] resolved from: ${from} → ${station}`); from = station }
+  }
+  if (isAddress(to)) {
+    const station = await resolveAddress(to)
+    if (station) { console.log(`[transit] resolved to: ${to} → ${station}`); to = station }
+  }
 
   console.log(`[transit] ${from} → ${to}  ${y}/${m}/${d} ${hh}:${m1}${m2}`)
 

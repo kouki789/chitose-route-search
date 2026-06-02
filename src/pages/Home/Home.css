@@ -426,6 +426,14 @@
   color: #666;
 }
 
+.transit-step--bus {
+  background: #f0fdf4;
+}
+
+.transit-step--air {
+  background: #eff6ff;
+}
+
 .step-icon {
   flex-shrink: 0;
   font-size: 1rem;

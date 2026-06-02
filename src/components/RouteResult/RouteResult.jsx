@@ -53,11 +53,16 @@ function TransitSteps({ steps, fallbackDep, fallbackArr }) {
   }
 
   const items = []
+  const STEP_ICON = { walk: '🚶', bus: '🚌', air: '✈️', transit: '🚃' }
+  const STEP_CLASS = { walk: 'walk', bus: 'bus', air: 'air', transit: 'transit' }
+
   steps.forEach((step, i) => {
+    const icon = STEP_ICON[step.type] ?? '🚃'
+    const cls  = STEP_CLASS[step.type] ?? 'transit'
     if (step.type === 'walk') {
       items.push(
         <div key={`s${i}`} className="transit-step transit-step--walk">
-          <span className="step-icon">🚶</span>
+          <span className="step-icon">{icon}</span>
           <div className="step-detail">
             <span className="step-line">{step.line || '徒歩'}</span>
             <span className="step-stations">{step.from} → {step.to}</span>
@@ -66,8 +71,8 @@ function TransitSteps({ steps, fallbackDep, fallbackArr }) {
       )
     } else {
       items.push(
-        <div key={`s${i}`} className="transit-step transit-step--transit">
-          <span className="step-icon">🚃</span>
+        <div key={`s${i}`} className={`transit-step transit-step--${cls}`}>
+          <span className="step-icon">{icon}</span>
           <div className="step-detail">
             <span className="step-line">{step.line}</span>
             <div className="step-row">
@@ -85,7 +90,7 @@ function TransitSteps({ steps, fallbackDep, fallbackArr }) {
     }
 
     const next = steps[i + 1]
-    if (next && step.type === 'transit' && next.type === 'transit') {
+    if (next && step.type !== 'walk' && next.type !== 'walk') {
       const waitMin = (step.arr && next.dep) ? diffMinutes(step.arr, next.dep) : null
       items.push(
         <div key={`t${i}`} className="transfer-row">

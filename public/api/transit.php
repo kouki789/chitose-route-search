@@ -15,6 +15,81 @@ if (!$from || !$to) {
     exit;
 }
 
+// ── 住所検知 → 最寄り駅名に変換 ─────────────────────────────────────────────
+function isAddress($s) {
+    return mb_strpos($s, '丁目') !== false || mb_strpos($s, '番地') !== false;
+}
+
+function findNearestStation($lat, $lon) {
+    $query = "[out:json][timeout:5];"
+           . "(node[\"railway\"=\"station\"](around:2000,{$lat},{$lon});"
+           . "node[\"railway\"=\"stop\"](around:2000,{$lat},{$lon}););"
+           . "out body;";
+    $ch = curl_init('https://overpass-api.de/api/interpreter');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain']);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'chitose-route-search/1.0 (educational project)');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    if (!$result) return null;
+    $data = json_decode($result, true);
+    if (empty($data['elements'])) return null;
+    $nearest = null;
+    $minDist = PHP_FLOAT_MAX;
+    foreach ($data['elements'] as $el) {
+        $d = hypot($el['lat'] - $lat, $el['lon'] - $lon);
+        if ($d < $minDist) { $minDist = $d; $nearest = $el; }
+    }
+    return isset($nearest['tags']['name']) ? $nearest['tags']['name'] : null;
+}
+
+function nominatimSearch($q) {
+    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
+        'q' => $q, 'format' => 'json', 'limit' => 1, 'countrycodes' => 'jp',
+    ]);
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'chitose-route-search/1.0 (educational project)');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    if (!$result) return null;
+    $data = json_decode($result, true);
+    return !empty($data[0]['lat']) ? $data[0] : null;
+}
+
+function resolveAddress($address) {
+    $cacheFile = sys_get_temp_dir() . '/geocache_' . md5($address) . '.txt';
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 86400) {
+        return file_get_contents($cacheFile) ?: null;
+    }
+    $stripped = preg_replace('/\d+-\d+$/', '', trim($address));
+    $candidates = [$stripped, '北海道' . $stripped, $address, '北海道' . $address];
+    $lat = null; $lon = null;
+    foreach ($candidates as $q) {
+        $hit = nominatimSearch($q);
+        if ($hit) { $lat = (float)$hit['lat']; $lon = (float)$hit['lon']; break; }
+    }
+    if (!$lat) { file_put_contents($cacheFile, ''); return null; }
+    $station = findNearestStation($lat, $lon);
+    if ($station) file_put_contents($cacheFile, $station);
+    return $station;
+}
+
+if (isAddress($from)) {
+    $station = resolveAddress($from);
+    if ($station) $from = $station;
+}
+if (isAddress($to)) {
+    $station = resolveAddress($to);
+    if ($station) $to = $station;
+}
+
 $params = http_build_query([
     'from' => $from, 'to' => $to,
     'y' => $y, 'm' => $m, 'd' => $d,
@@ -65,6 +140,26 @@ $item    = $featureList[0];
 $summary = isset($item['summaryInfo'])   ? $item['summaryInfo']   : [];
 $edges   = isset($item['edgeInfoList'])  ? $item['edgeInfoList']  : [];
 
+// ── エッジから交通手段名を取得（鉄道・バス・飛行機に対応） ────────────────
+function getEdgeName($edge) {
+    foreach (['railName', 'lineName', 'busLineName'] as $f) {
+        if (!empty($edge[$f])) return $edge[$f];
+    }
+    if (!empty($edge['airlineName'])) {
+        $n = $edge['airlineName'];
+        if (!empty($edge['flightNo'])) $n .= ' ' . $edge['flightNo'];
+        return $n;
+    }
+    return '';
+}
+
+function getEdgeType($edge, $name) {
+    if (mb_strpos($name, '徒歩') !== false) return 'walk';
+    if (!empty($edge['airlineName']) || !empty($edge['flightNo'])) return 'air';
+    if (!empty($edge['busLineName']) || mb_strpos($name, 'バス') !== false) return 'bus';
+    return 'transit';
+}
+
 // ── edgeInfoList をパース ─────────────────────────────────────────────────
 $steps = [];
 $i     = 0;
@@ -73,23 +168,22 @@ $cnt   = count($edges);
 while ($i < $cnt) {
     $cur  = $edges[$i];
     $next = isset($edges[$i + 1]) ? $edges[$i + 1] : null;
-    $rail = isset($cur['railName']) ? $cur['railName'] : '';
+    $rail = getEdgeName($cur);
 
     if (!$rail || !$next) { $i++; continue; }
 
-    $sameRail = (isset($next['railName']) ? $next['railName'] : '') === $rail;
+    $sameRail = getEdgeName($next) === $rail;
+    $stepType = getEdgeType($cur, $rail);
     $depSt    = isset($cur['stationName'])          ? $cur['stationName']          : '';
-    $arrSt    = isset($next['stationName'])          ? $next['stationName']          : '';
-    $depT     = isset($cur['timeInfo'][0]['time'])   ? $cur['timeInfo'][0]['time']   : '';
-    $arrT     = isset($next['timeInfo'][0]['time'])  ? $next['timeInfo'][0]['time']  : '';
-    $price    = isset($cur['priceInfo']['price'])    ? $cur['priceInfo']['price']    : null;
+    $arrSt    = isset($next['stationName'])          ? $next['stationName']         : '';
+    $depT     = isset($cur['timeInfo'][0]['time'])   ? $cur['timeInfo'][0]['time']  : '';
+    $arrT     = isset($next['timeInfo'][0]['time'])  ? $next['timeInfo'][0]['time'] : '';
+    $price    = isset($cur['priceInfo']['price'])    ? $cur['priceInfo']['price']   : null;
 
-    $isWalk = mb_strpos($rail, '徒歩') !== false;
-
-    if ($isWalk) {
-        $steps[] = ['type' => 'walk',    'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail];
+    if ($stepType === 'walk') {
+        $steps[] = ['type' => 'walk', 'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail];
     } else {
-        $steps[] = ['type' => 'transit', 'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail, 'price' => $price];
+        $steps[] = ['type' => $stepType, 'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail, 'price' => $price];
     }
 
     $i += $sameRail ? 2 : 1;
