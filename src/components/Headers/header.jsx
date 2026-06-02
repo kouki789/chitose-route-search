@@ -8,12 +8,12 @@ export default function Headers() {
             公立千歳科学技術大学-<span>ルート検索サイト</span>
             </Link>
             <nav className="nav">
+                <NavLink to="/contact" className="nav-link">
+                    お問い合わせ
+                </NavLink>
                 <NavLink to="/terms" className="nav-link">
                     利用規約
                 </NavLink>
-                {/* <NavLink to="/donation" className="nav-link">
-                    寄付
-                </NavLink> */}
             </nav>
 
         </div>

@@ -1,0 +1,162 @@
+.contact-page {
+  min-height: 100vh;
+  padding-top: var(--header-h);
+  background: #f9f9fb;
+}
+
+.contact-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 3rem 2rem 5rem;
+  box-sizing: border-box;
+}
+
+.contact-back {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 2rem;
+  display: inline-block;
+}
+
+.contact-back:hover {
+  text-decoration: underline;
+}
+
+.contact-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #111;
+  margin-bottom: 0.5rem;
+}
+
+.contact-intro {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.7;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.required {
+  color: #e55;
+  margin-left: 0.2rem;
+}
+
+.form-input,
+.form-textarea {
+  padding: 0.8rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #222;
+  background: #fff;
+  color-scheme: light;
+  box-sizing: border-box;
+  width: 100%;
+  transition: border-color 0.2s;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: #6366f1;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.form-error {
+  font-size: 0.875rem;
+  color: #e55;
+  background: #fff0f0;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 1rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.contact-done {
+  text-align: center;
+  padding-top: 4rem;
+}
+
+.done-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.contact-done h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #111;
+  margin-bottom: 0.75rem;
+}
+
+.contact-done p {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+}
+
+.btn-back {
+  padding: 0.75rem 2rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-back:hover {
+  opacity: 0.85;
+}

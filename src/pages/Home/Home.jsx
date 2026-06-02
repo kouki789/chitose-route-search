@@ -3,394 +3,20 @@ import { Link } from 'react-router-dom'
 import './Home.css'
 import {
   getSchedule, getReturnSchedule,
-  findNextBuses, findNextReturnBus,
-  formatTime,
-  CHITOSE_STATION, BUS_STOP, UNIVERSITY, TRANSFER_MIN,
+  findNextReturnBus,
+  CHITOSE_STATION, TRANSFER_MIN,
 } from '../../utils/schedule'
-import { STATION_GROUPS } from '../../utils/hokkaido'
-
-// ── API ────────────────────────────────────────────────────────────────────
-
-async function fetchTransit(from, to, departure) {
-  const y  = departure.getFullYear()
-  const mo = departure.getMonth() + 1
-  const d  = departure.getDate()
-  const hh = departure.getHours()
-  const min = departure.getMinutes()
-  const m1 = Math.floor(min / 10)
-  const m2 = min % 10
-  const params = new URLSearchParams({ from, to, y, m: mo, d, hh, m1, m2 })
-  let res
-  try {
-    res = await fetch(`/api/transit?${params}`)
-  } catch {
-    throw new Error('サーバーに接続できません。npm run server を実行してください。')
-  }
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}))
-    throw new Error(j.error || `HTTP ${res.status}`)
-  }
-  return res.json()
-}
-
-// ── 所要時間の表示 ─────────────────────────────────────────────────────────
-
-function diffMinutes(dep, arr) {
-  const [dh, dm] = dep.split(':').map(Number)
-  const [ah, am] = arr.split(':').map(Number)
-  return (ah * 60 + am) - (dh * 60 + dm)
-}
-
-function formatMinutes(min) {
-  if (!min && min !== 0) return null
-  if (min < 60) return `${min}分`
-  return `${Math.floor(min / 60)}時間${min % 60 > 0 ? `${min % 60}分` : ''}`
-}
-
-// ── ルート結果コンポーネント ───────────────────────────────────────────────
-
-function TransitSteps({ steps, fallbackDep, fallbackArr }) {
-  if (!steps || steps.length === 0) {
-    return fallbackDep && fallbackArr ? (
-      <div className="transit-fallback">🚃 {fallbackDep}発 → {fallbackArr}着</div>
-    ) : null
-  }
-
-  const items = []
-  steps.forEach((step, i) => {
-    if (step.type === 'walk') {
-      items.push(
-        <div key={`s${i}`} className="transit-step transit-step--walk">
-          <span className="step-icon">🚶</span>
-          <div className="step-detail">
-            <span className="step-line">{step.line || '徒歩'}</span>
-            <span className="step-stations">{step.from} → {step.to}</span>
-          </div>
-        </div>
-      )
-    } else {
-      items.push(
-        <div key={`s${i}`} className="transit-step transit-step--transit">
-          <span className="step-icon">🚃</span>
-          <div className="step-detail">
-            <span className="step-line">{step.line}</span>
-            <div className="step-row">
-              <span className="step-station">{step.from}</span>
-              <span className="step-time">{step.dep}発</span>
-            </div>
-            <div className="step-row">
-              <span className="step-station">{step.to}</span>
-              <span className="step-time">{step.arr}着</span>
-            </div>
-            {step.price && <span className="step-price">💴 ¥{step.price}</span>}
-          </div>
-        </div>
-      )
-    }
-
-    // 乗り換え表示: transit → transit の間
-    const next = steps[i + 1]
-    if (next && step.type === 'transit' && next.type === 'transit') {
-      const waitMin = (step.arr && next.dep) ? diffMinutes(step.arr, next.dep) : null
-      items.push(
-        <div key={`t${i}`} className="transfer-row">
-          <span className="transfer-icon">🔄</span>
-          <span className="transfer-text">
-            {step.to} で乗り換え
-            {waitMin != null && waitMin > 0 && <span className="transfer-wait">（待ち {waitMin}分）</span>}
-          </span>
-        </div>
-      )
-    }
-  })
-
-  return <div className="transit-steps">{items}</div>
-}
-
-function RouteSummary({ dep, arr, totalPrice, totalTime }) {
-  const displayTime = totalTime ?? (dep && arr ? formatMinutes(diffMinutes(dep, arr)) : null)
-  return (
-    <div className="route-summary">
-      <div className="route-summary-times">
-        <span className="summary-dep">{dep}<span className="summary-label">発</span></span>
-        <span className="summary-arrow">→</span>
-        <span className="summary-arr">{arr}<span className="summary-label">着</span></span>
-      </div>
-      <div className="route-summary-meta">
-        {displayTime && <span className="meta-item">🕐 {displayTime}</span>}
-        {totalPrice && <span className="meta-item">💴 ¥{totalPrice}</span>}
-      </div>
-    </div>
-  )
-}
-
-function RouteResult({ result }) {
-  if (result.noService) {
-    return (
-      <div className="route-result">
-        <p className="result-no-service">🚌 本日のバスは運休です。</p>
-      </div>
-    )
-  }
-
-  if (result.type === 'outbound') {
-    return (
-      <div className="route-result">
-        {/* ① 出発地 → 千歳駅 */}
-        <div className="result-section">
-          <div className="section-header">
-            <span className="step-num">①</span>
-            <span className="section-title">{result.origin} → {CHITOSE_STATION}</span>
-          </div>
-          {result.transit1Loading && <div className="loading">検索中…</div>}
-          {result.transit1Error && <div className="transit-error">⚠️ {result.transit1Error}</div>}
-          {result.transit1 && (
-            <>
-              <RouteSummary
-                dep={result.transit1.depTime}
-                arr={result.transit1.arrTime}
-                totalPrice={result.transit1.totalPrice}
-                totalTime={result.transit1.totalTime}
-              />
-              <TransitSteps
-                steps={result.transit1.steps}
-                fallbackDep={result.transit1.depTime}
-                fallbackArr={result.transit1.arrTime}
-              />
-            </>
-          )}
-        </div>
-
-        {/* ② 千歳駅 → 千歳駅前 */}
-        <div className="result-section">
-          <div className="section-header">
-            <span className="step-num">②</span>
-            <span className="section-title">{CHITOSE_STATION} → {BUS_STOP}</span>
-          </div>
-          <div className="walk-info">🚶 徒歩 約{TRANSFER_MIN}分</div>
-        </div>
-
-        {/* ③ バス */}
-        <div className="result-section">
-          <div className="section-header">
-            <span className="step-num">③</span>
-            <span className="section-title">{BUS_STOP} → {UNIVERSITY}</span>
-          </div>
-          {result.busResult ? (
-            <BusResultView br={result.busResult} />
-          ) : (
-            <div className="loading">検索中…</div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="route-result">
-      {/* ① バス */}
-      <div className="result-section">
-        <div className="section-header">
-          <span className="step-num">①</span>
-          <span className="section-title">{UNIVERSITY} → {BUS_STOP}</span>
-        </div>
-        <div className="bus-info">
-          🚌 発車: <strong>{formatTime(result.bus.dep)}</strong>
-          {BUS_STOP}着: <strong>{formatTime(result.bus.arr)}</strong>
-        </div>
-      </div>
-
-      {/* ② 千歳駅前 → 千歳駅 */}
-      <div className="result-section">
-        <div className="section-header">
-          <span className="step-num">②</span>
-          <span className="section-title">{BUS_STOP} → {CHITOSE_STATION}</span>
-        </div>
-        <div className="walk-info">🚶 徒歩 約{TRANSFER_MIN}分</div>
-      </div>
-
-      {/* ③ 千歳駅 → 目的地 */}
-      <div className="result-section">
-        <div className="section-header">
-          <span className="step-num">③</span>
-          <span className="section-title">{CHITOSE_STATION} → {result.destination}</span>
-        </div>
-        {result.transit2Loading && <div className="loading">検索中…</div>}
-        {result.transit2Error && <div className="transit-error">⚠️ {result.transit2Error}</div>}
-        {result.transit2 && (
-          <>
-            <RouteSummary
-              dep={result.transit2.depTime}
-              arr={result.transit2.arrTime}
-              totalPrice={result.transit2.totalPrice}
-              totalTime={result.transit2.totalTime}
-            />
-            <TransitSteps
-              steps={result.transit2.steps}
-              fallbackDep={result.transit2.depTime}
-              fallbackArr={result.transit2.arrTime}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── バス最適化ロジック ─────────────────────────────────────────────────────
-
-function findOptimalBusResult(busStopArrival, timetable) {
-  const buses = findNextBuses(busStopArrival, timetable, 2)
-  if (!buses.length) {
-    return { buses: [], status: 'none', waitMin: 0, message: '本日の便はすべて終了しています' }
-  }
-  const waitMin = Math.round((buses[0] - busStopArrival) / 60000)
-
-  if (waitMin < 5) {
-    return { buses, status: 'tight', waitMin,
-      message: `乗り換え時間が約${waitMin}分と短めです。次の便も表示しています` }
-  } else if (waitMin <= 9) {
-    return { buses: [buses[0]], status: 'good', waitMin,
-      message: `乗り換え良好（バス停で約${waitMin}分待ち）` }
-  } else {
-    return { buses, status: 'long', waitMin,
-      message: `バス停で約${waitMin}分待ちになります` }
-  }
-}
-
-function BusResultView({ br }) {
-  if (br.status === 'none') {
-    return <div className="transit-error">⚠️ {br.message}</div>
-  }
-  const statusClass = { good: 'bus-status--good', tight: 'bus-status--tight', long: 'bus-status--long' }[br.status] ?? ''
-  return (
-    <div>
-      {br.message && (
-        <div className={`bus-status ${statusClass}`}>{br.message}</div>
-      )}
-      <div className="bus-times">
-        {br.buses.map((bus, i) => (
-          <span key={i} className={`bus-time ${i === 0 ? 'next' : ''}`}>
-            {i === 0 && <span className="bus-label">{br.status === 'tight' ? '⚠️ 次便' : '次便'}</span>}
-            {formatTime(bus)}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── 入力セレクター ─────────────────────────────────────────────────────────
-
-function InputSelector({ value, onChange, label }) {
-  const [mode, setMode] = useState('text')           // 'text' | 'location' | 'list'
-  const [geoState, setGeoState] = useState('idle')   // 'idle' | 'loading' | 'done' | 'error'
-  const [geoMsg, setGeoMsg] = useState('')
-  const [selGroup, setSelGroup] = useState('')
-  const [selStation, setSelStation] = useState('')
-
-  const currentGroup = STATION_GROUPS.find(g => g.group === selGroup)
-
-  async function handleLocation() {
-    if (!navigator.geolocation) {
-      setGeoState('error'); setGeoMsg('この端末では位置情報を使用できません')
-      return
-    }
-    setGeoState('loading')
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const res = await fetch(`/api/geocode?lat=${coords.latitude}&lon=${coords.longitude}`)
-          const data = await res.json()
-          if (data.error) throw new Error(data.error)
-          onChange(data.location)
-          setGeoMsg(data.location)
-          setGeoState('done')
-        } catch (e) {
-          setGeoState('error'); setGeoMsg(e.message)
-        }
-      },
-      () => { setGeoState('error'); setGeoMsg('位置情報の取得を許可してください') }
-    )
-  }
-
-  function handleGroupChange(e) {
-    setSelGroup(e.target.value)
-    setSelStation('')
-    onChange('')
-  }
-
-  function handleStationChange(e) {
-    setSelStation(e.target.value)
-    onChange(e.target.value)
-  }
-
-  function switchMode(m) {
-    setMode(m)
-    setGeoState('idle'); setGeoMsg('')
-    setSelGroup(''); setSelStation('')
-    onChange('')
-  }
-
-  return (
-    <div className="input-selector">
-      <div className="input-mode-tabs">
-        <button type="button" className={`mode-tab ${mode === 'text' ? 'active' : ''}`} onClick={() => switchMode('text')}>✏️ 手入力</button>
-        <button type="button" className={`mode-tab ${mode === 'location' ? 'active' : ''}`} onClick={() => switchMode('location')}>📍 現在地</button>
-        <button type="button" className={`mode-tab ${mode === 'list' ? 'active' : ''}`} onClick={() => switchMode('list')}>📋 リスト</button>
-      </div>
-
-      <label className="route-label">{label}</label>
-
-      {mode === 'text' && (
-        <input
-          className="route-input"
-          type="text"
-          placeholder="例: 札幌駅"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-        />
-      )}
-
-      {mode === 'location' && (
-        <div className="location-wrap">
-          <button type="button" className="location-btn" onClick={handleLocation} disabled={geoState === 'loading'}>
-            {geoState === 'loading' ? '取得中…' : '📍 現在地を取得'}
-          </button>
-          {geoState === 'done' && <span className="location-result">✅ {geoMsg}</span>}
-          {geoState === 'error' && <span className="location-error">⚠️ {geoMsg}</span>}
-        </div>
-      )}
-
-      {mode === 'list' && (
-        <div className="list-wrap">
-          <select className="route-select" value={selGroup} onChange={handleGroupChange}>
-            <option value="">── 地域を選択 ──</option>
-            {STATION_GROUPS.map(g => (
-              <option key={g.group} value={g.group}>{g.group}</option>
-            ))}
-          </select>
-          {currentGroup && (
-            <select className="route-select" value={selStation} onChange={handleStationChange}>
-              <option value="">── 駅・地名を選択 ──</option>
-              {currentGroup.items.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── メインコンポーネント ───────────────────────────────────────────────────
+import { fetchTransit, findOptimalBusResult } from '../../utils/routeLogic'
+import { useFavorites } from '../../hooks/useFavorites'
+import RouteResult from '../../components/RouteResult/RouteResult'
+import InputSelector from '../../components/InputSelector/InputSelector'
 
 export default function Home() {
   const [direction, setDirection] = useState('outbound')
   const [inputValue, setInputValue] = useState('')
   const [result, setResult] = useState(null)
   const [now, setNow] = useState(new Date())
+  const { favorites, add: addFav, remove: removeFav } = useFavorites()
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000)
@@ -405,14 +31,12 @@ export default function Home() {
       const timetable = getSchedule(now)
       if (!timetable.length) { setResult({ type: 'outbound', noService: true }); return }
 
-      // 骨格を表示（バスは取得後に確定）
       const base = { type: 'outbound', origin: inputValue.trim(), busResult: null, transit1Loading: true, transit1: null, transit1Error: null }
       setResult(base)
 
       try {
         const transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, now)
 
-        // 実際の千歳駅着時刻からバス停到着を計算
         let busResult
         if (transit1.arrTime) {
           const [ah, am] = transit1.arrTime.split(':').map(Number)
@@ -422,16 +46,12 @@ export default function Home() {
           const busStopArrival = new Date(stationArrival.getTime() + TRANSFER_MIN * 60000)
           busResult = findOptimalBusResult(busStopArrival, timetable)
         } else {
-          // arrTime が取れない場合は現在時刻ベースでフォールバック
-          const busStopArrival = new Date(now.getTime() + TRANSFER_MIN * 60000)
-          busResult = findOptimalBusResult(busStopArrival, timetable)
+          busResult = findOptimalBusResult(new Date(now.getTime() + TRANSFER_MIN * 60000), timetable)
         }
 
         setResult(r => ({ ...r, transit1Loading: false, transit1, busResult }))
       } catch (e) {
-        // API 失敗時も現在時刻ベースでバスだけは表示
-        const busStopArrival = new Date(now.getTime() + TRANSFER_MIN * 60000)
-        const busResult = findOptimalBusResult(busStopArrival, timetable)
+        const busResult = findOptimalBusResult(new Date(now.getTime() + TRANSFER_MIN * 60000), timetable)
         setResult(r => ({ ...r, transit1Loading: false, transit1Error: e.message, busResult }))
       }
 
@@ -466,10 +86,13 @@ export default function Home() {
       <section className="hero">
         <div className="container">
           <div className="hero-content">
-            <div className="hero-badge">公立千歳科学技術大学-ルート検索サイト</div>
+            <div className="hero-badge">公立千歳科学技術大学-ルート検索サイト（非公式）</div>
             <h1>公立千歳科学技術大学までの<br />ルート検索サイトです。<br />
               入力情報や出力結果は記録されていません。</h1>
-            <p className="hero-desc">ご希望の目的地を入力してください。</p>
+            <p1>
+                Route Search for Chitose Institute of Science and Technology.<br />
+            </p1>
+            <p className="hero-desc">ご希望の出発地/目的地を入力してください。</p>
 
             <div className="direction-toggle">
               <button className={`direction-btn ${direction === 'outbound' ? 'active' : ''}`} onClick={() => handleToggle('outbound')}>
@@ -486,15 +109,53 @@ export default function Home() {
                 value={inputValue}
                 onChange={v => { setInputValue(v); setResult(null) }}
               />
-              <button type="submit" className="route-search-btn" disabled={!inputValue.trim()}>
-                検索
-              </button>
+              <div className="search-actions">
+                <button type="submit" className="route-search-btn" disabled={!inputValue.trim()}>
+                  検索
+                </button>
+                <button
+                  type="button"
+                  className={`fav-btn ${favorites.includes(inputValue.trim()) ? 'fav-btn--active' : ''}`}
+                  onClick={() => favorites.includes(inputValue.trim()) ? removeFav(inputValue.trim()) : addFav(inputValue.trim())}
+                  disabled={!inputValue.trim()}
+                  title="お気に入りに追加"
+                >
+                  {favorites.includes(inputValue.trim()) ? '★' : '☆'}
+                </button>
+              </div>
+              {favorites.length > 0 && (
+                <div className="favorites">
+                  <span className="fav-label">お気に入り</span>
+                  <div className="fav-chips">
+                    {favorites.map(f => (
+                      <span key={f} className="fav-chip">
+                        <button type="button" className="fav-chip-name" onClick={() => { setInputValue(f); setResult(null) }}>
+                          {f}
+                        </button>
+                        <button type="button" className="fav-chip-remove" onClick={() => removeFav(f)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </form>
 
             {result && <RouteResult result={result} />}
+
+            <div className="disclaimer">
+              <div className="disclaimer-row">
+                <span className="disclaimer-icon">⚠️</span>
+                <strong>非公式サイト</strong>
+              </div>
+              <ul className="disclaimer-list">
+                <li>このサイトは個人が運営する非公式サービスであり、公立千歳科学技術大学とは一切関係ありません。</li>
+                <li>提供するルート情報はあくまで参考です。実際の乗車前に各交通機関の公式情報を必ずご確認ください。</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
+
       <section className="discord-section">
         <div className="container">
           <div className="discord-card">
@@ -520,14 +181,15 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       <footer className="footer">
         <div className="container">
           <div className="footer-logo">公立千歳科学技術大学-ルート検索サイト</div>
-          <p>© 2026 公立千歳科学技術大学. All rights reserved.</p>
-          <p className="footer-credit">Supported by b2241760</p>
+          <p>© 2026 Kouki Hashikake. All rights reserved.</p>
+          <p className="footer-credit">
+※This is an unofficial student-made service.<br />※本サービスは個人が開発・運営している非公式サービスです。</p>
           <div className="footer-links">
             <Link to="/terms" className="footer-link">利用規約</Link>
-            {/* <Link to="/donation" className="footer-link">寄付</Link> */}
           </div>
         </div>
       </footer>
