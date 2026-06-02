@@ -29,7 +29,8 @@ export async function fetchTransit(from, to, departure) {
 export function diffMinutes(dep, arr) {
   const [dh, dm] = dep.split(':').map(Number)
   const [ah, am] = arr.split(':').map(Number)
-  return (ah * 60 + am) - (dh * 60 + dm)
+  const diff = (ah * 60 + am) - (dh * 60 + dm)
+  return diff < 0 ? diff + 24 * 60 : diff
 }
 
 export function formatMinutes(min) {
@@ -45,7 +46,7 @@ export function findOptimalBusResult(busStopArrival, timetable) {
   if (!buses.length) {
     return { buses: [], status: 'none', waitMin: 0, message: '本日の便はすべて終了しています' }
   }
-  const waitMin = Math.round((buses[0] - busStopArrival) / 60000)
+  const waitMin = Math.round((buses[0].dep - busStopArrival) / 60000)
 
   if (waitMin < 5) {
     return { buses, status: 'tight', waitMin,

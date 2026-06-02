@@ -27,7 +27,90 @@
   border-radius: 10px;
   padding: 4px;
   gap: 4px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ===== バスピッカー ===== */
+.bus-picker {
+  max-width: 480px;
+  margin: 0 auto 1.25rem;
+  text-align: left;
+}
+
+.bus-picker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border: 1.5px solid #d0d0e0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.bus-picker-toggle:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.bus-picker-toggle--selected {
+  border-color: #6366f1;
+  background: #eef0ff;
+  color: #4f52c8;
+}
+
+.bus-picker-caret {
+  font-size: 0.65rem;
+  opacity: 0.6;
+}
+
+.bus-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  padding: 0.75rem;
+  background: #f8f8fc;
+  border: 1px solid #e8e8f0;
+  border-radius: 10px;
+}
+
+.bus-chip {
+  padding: 0.3rem 0.65rem;
+  border: 1.5px solid #d0d0e0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.bus-chip:hover:not(.bus-chip--past) {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.bus-chip--active {
+  border-color: #6366f1;
+  background: #6366f1;
+  color: #fff;
+}
+
+.bus-chip--active:hover {
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.bus-chip--past {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .direction-btn {
@@ -559,10 +642,10 @@
 }
 
 .bus-time {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -573,6 +656,19 @@
 .bus-time.next {
   background: #6366f1;
   color: #fff;
+}
+
+.bus-dep-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.bus-arr-row {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.75;
 }
 
 .countdown {

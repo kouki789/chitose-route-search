@@ -76,11 +76,7 @@ function parseYahooHtml(html) {
       // 通常の路線検索（featureInfoList から地上交通ルートを優先）
       const nsp = pageProps.naviSearchParam
       if (nsp?.featureInfoList?.length > 0) {
-        // 飛行機ステップを含まないルートを優先、なければ最初のルートを使う
-        const ground = nsp.featureInfoList.find(item =>
-          !(item.edgeInfoList || []).some(e => !!(e.airlineName || e.flightNo))
-        )
-        const item = ground ?? nsp.featureInfoList[0]
+          const item = nsp.featureInfoList[0]
         const result = parseFeatureItem(item)
         if (result.depTime || result.arrTime) return result
       }
@@ -267,6 +263,10 @@ app.get('/api/transit', async (req, res) => {
   if (fromInfo) { airportNote = fromInfo.note; from = fromInfo.station; console.log(`[transit] airport: ${from} → ${fromInfo.station}`) }
   const toInfo = AIRPORT_MAP[to]
   if (toInfo) { airportNote = (airportNote ? airportNote + ' ' : '') + toInfo.note; to = toInfo.station; console.log(`[transit] airport: ${to} → ${toInfo.station}`) }
+
+  // UI 表示用の disambig suffix（例：池田（北海道）→ 池田）を除去
+  from = from.replace(/（[^）]*）$/, '')
+  to   = to.replace(/（[^）]*）$/, '')
 
   if (isAddress(from)) {
     const station = await resolveAddress(from)

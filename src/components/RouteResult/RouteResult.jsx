@@ -34,8 +34,13 @@ function BusResultView({ br }) {
         {br.buses.map((bus, i) => (
           <span key={i} className={`bus-time ${i === 0 ? 'next' : ''}`}>
             {i === 0 && <span className="bus-label">{br.status === 'tight' ? '⚠️ 次便' : '次便'}</span>}
-            {formatTime(bus)}
-            {i === 0 && <Countdown bus={bus} />}
+            <div className="bus-dep-row">
+              千歳駅前{bus.stop} <strong>{formatTime(bus.dep)}</strong>発
+              {i === 0 && <Countdown bus={bus.dep} />}
+            </div>
+            <div className="bus-arr-row">
+              研究棟 {formatTime(bus.kenArr)}着 ／ 本部棟 {formatTime(bus.honArr)}着
+            </div>
           </span>
         ))}
       </div>
@@ -197,8 +202,11 @@ export default function RouteResult({ result }) {
           <span className="section-title">{UNIVERSITY} → {BUS_STOP}</span>
         </div>
         <div className="bus-info">
-          🚌 発車: <strong>{formatTime(result.bus.dep)}</strong>
-          　{BUS_STOP}着: <strong>{formatTime(result.bus.arr)}</strong>
+          <div className="bus-dep-row">
+            🚌 本部棟 <strong>{formatTime(result.bus.dep)}</strong>発
+            {result.bus.kenDep && <span> ／ 研究棟 <strong>{formatTime(result.bus.kenDep)}</strong>発</span>}
+          </div>
+          <div className="bus-arr-row">千歳駅前 <strong>{formatTime(result.bus.arr)}</strong>着</div>
         </div>
       </div>
 

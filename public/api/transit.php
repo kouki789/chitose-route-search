@@ -31,9 +31,10 @@ function isAddress($s) {
 }
 
 function findNearestStation($lat, $lon) {
-    $query = "[out:json][timeout:5];"
+    $query = "[out:json][timeout:8];"
            . "(node[\"railway\"=\"station\"](around:2000,{$lat},{$lon});"
-           . "node[\"railway\"=\"stop\"](around:2000,{$lat},{$lon}););"
+           . "node[\"railway\"=\"stop\"](around:2000,{$lat},{$lon});"
+           . "node[\"railway\"=\"halt\"](around:2000,{$lat},{$lon}););"
            . "out body;";
     $ch = curl_init('https://overpass-api.de/api/interpreter');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -90,6 +91,10 @@ function resolveAddress($address) {
     if ($station) file_put_contents($cacheFile, $station);
     return $station;
 }
+
+// UI 表示用の disambig suffix（例：池田（北海道）→ 池田）を除去
+$from = preg_replace('/（[^）]*）$/', '', $from);
+$to   = preg_replace('/（[^）]*）$/', '', $to);
 
 if (isAddress($from)) {
     $station = resolveAddress($from);

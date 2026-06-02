@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import './Home.css'
 import {
   getSchedule, getReturnSchedule,
-  findNextReturnBus,
+  findNextReturnBus, toDateTime,
   CHITOSE_STATION, TRANSFER_MIN,
 } from '../../utils/schedule'
 import { fetchTransit, findOptimalBusResult } from '../../utils/routeLogic'
@@ -17,6 +17,8 @@ export default function Home() {
   const [inputValue, setInputValue] = useState('')
   const [result, setResult] = useState(null)
   const [now, setNow] = useState(new Date())
+  const [selectedBus, setSelectedBus] = useState(null)
+  const [busPickerOpen, setBusPickerOpen] = useState(false)
   const { favorites, add: addFav, remove: removeFav } = useFavorites()
 
   useEffect(() => {
@@ -39,7 +41,31 @@ export default function Home() {
         const transit1 = await fetchTransit(inputValue.trim(), CHITOSE_STATION, now)
 
         let busResult
-        if (transit1.arrTime) {
+        if (selectedBus) {
+          const busDep = toDateTime(now, selectedBus[0])
+          let compatible = true
+          if (transit1.arrTime) {
+            const [ah, am] = transit1.arrTime.split(':').map(Number)
+            const stationArrival = new Date(now)
+            stationArrival.setHours(ah, am, 0, 0)
+            if (stationArrival < now) stationArrival.setDate(stationArrival.getDate() + 1)
+            const busStopArrival = new Date(stationArrival.getTime() + TRANSFER_MIN * 60000)
+            compatible = busStopArrival <= busDep
+          }
+          busResult = {
+            buses: [{
+              dep:    busDep,
+              kenArr: toDateTime(now, selectedBus[1]),
+              honArr: toDateTime(now, selectedBus[2]),
+              stop:   selectedBus[3],
+            }],
+            status: compatible ? 'good' : 'tight',
+            waitMin: 0,
+            message: compatible
+              ? `指定バス（${selectedBus[0]}発）で乗車`
+              : `⚠️ ${selectedBus[0]}発のバスに間に合わない可能性があります`,
+          }
+        } else if (transit1.arrTime) {
           const [ah, am] = transit1.arrTime.split(':').map(Number)
           const stationArrival = new Date(now)
           stationArrival.setHours(ah, am, 0, 0)
@@ -60,8 +86,17 @@ export default function Home() {
       const timetable = getReturnSchedule(now)
       if (!timetable.length) { setResult({ type: 'return', noService: true }); return }
 
-      const bus = findNextReturnBus(now, timetable)
-      if (!bus) { setResult({ type: 'return', noService: true }); return }
+      let bus
+      if (selectedBus) {
+        bus = {
+          dep:    toDateTime(now, selectedBus[0]),
+          kenDep: toDateTime(now, selectedBus[1]),
+          arr:    toDateTime(now, selectedBus[2]),
+        }
+      } else {
+        bus = findNextReturnBus(now, timetable)
+        if (!bus) { setResult({ type: 'return', noService: true }); return }
+      }
 
       const chitoseDep = new Date(bus.arr.getTime() + TRANSFER_MIN * 60000)
       const base = { type: 'return', destination: inputValue.trim(), bus, transit2Loading: true, transit2: null, transit2Error: null }
@@ -80,7 +115,11 @@ export default function Home() {
     setDirection(dir)
     setInputValue('')
     setResult(null)
+    setSelectedBus(null)
+    setBusPickerOpen(false)
   }
+
+  const busTimetable = direction === 'outbound' ? getSchedule(now) : getReturnSchedule(now)
 
   return (
     <main>
@@ -90,9 +129,9 @@ export default function Home() {
             <div className="hero-badge">公立千歳科学技術大学-ルート検索サイト（非公式）</div>
             <h1>公立千歳科学技術大学までの<br />ルート検索サイトです。<br />
               入力情報や出力結果は記録されていません。</h1>
-            <p1>
+            <p>
                 Route Search for Chitose Institute of Science and Technology.<br />
-            </p1>
+            </p>
             <p className="hero-desc">ご希望の出発地/目的地を入力してください。</p>
 
             <div className="direction-toggle">
@@ -103,6 +142,45 @@ export default function Home() {
                 復路（帰り）
               </button>
             </div>
+
+            {busTimetable.length > 0 && (
+              <div className="bus-picker">
+                <button
+                  type="button"
+                  className={`bus-picker-toggle ${selectedBus ? 'bus-picker-toggle--selected' : ''}`}
+                  onClick={() => setBusPickerOpen(o => !o)}
+                >
+                  🚌 {selectedBus
+                    ? `${selectedBus[0]}発を指定中`
+                    : direction === 'outbound' ? '大学までのバスを指定' : '大学からのバスを指定'}
+                  <span className="bus-picker-caret">{busPickerOpen ? '▲' : '▼'}</span>
+                </button>
+                {busPickerOpen && (
+                  <div className="bus-picker-chips">
+                    <button
+                      type="button"
+                      className={`bus-chip ${!selectedBus ? 'bus-chip--active' : ''}`}
+                      onClick={() => { setSelectedBus(null); setBusPickerOpen(false) }}
+                    >自動</button>
+                    {busTimetable.map((t, i) => {
+                      const timeStr = t[0]
+                      const isPast = toDateTime(now, timeStr) < now
+                      const isSelected = selectedBus?.[0] === t[0]
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`bus-chip ${isSelected ? 'bus-chip--active' : ''} ${isPast ? 'bus-chip--past' : ''}`}
+                          onClick={() => { setSelectedBus(isSelected ? null : t); setBusPickerOpen(false) }}
+                        >
+                          {timeStr}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <form className="route-input-wrap" onSubmit={handleSearch}>
               <InputSelector
