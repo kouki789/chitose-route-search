@@ -666,12 +666,12 @@
 }
 
 .hero h1 {
-  font-size: clamp(2.4rem, 4vw, 3rem);
+  font-size: clamp(1.3rem, 4vw, 3rem);
   font-weight: 900;
   color: #1c1919;
-  margin-bottom: 3rem;
-  letter-spacing: 1.5px;
-  line-height: 1;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+  line-height: 1.4;
 }
 
 .hero-desc {

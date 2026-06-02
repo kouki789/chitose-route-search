@@ -28,7 +28,10 @@
 }
 
 @media (max-width: 480px) {
-  :root { --header-h: 64px; }
+  :root {
+    --header-h: 56px;
+    font-size: 14px;
+  }
 }
 
 

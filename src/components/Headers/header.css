@@ -70,6 +70,10 @@
 .nav-cta:hover { background: var(--blurple-dark); }
 
 @media (max-width: 768px) {
-  .nav { gap: 1rem; }
-  .nav-link { display: none; }
+  .nav { gap: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .logo { font-size: 0.95rem; }
+  .nav-link { font-size: 0.85rem; }
 }
