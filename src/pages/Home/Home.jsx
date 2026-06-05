@@ -128,11 +128,9 @@ export default function Home() {
         <div className="container">
           <div className="hero-content">
             <div className="hero-badge">公立千歳科学技術大学-ルート検索サイト（非公式）</div>
-            <h1>公立千歳科学技術大学までの<br />ルート検索サイトです。<br />
-              入力情報や出力結果は記録されていません。</h1>
-            <p>
-                Route Search for Chitose Institute of Science and Technology.<br />
-            </p>
+            <h1>公立千歳科学技術大学までの<br />ルート検索サイトです。</h1>
+            <p className="hero-en">Route Search for Chitose Institute of Science and Technology.</p>
+            <p className="hero-privacy">🔒 入力情報や出力結果は記録されていません。</p>
             <p className="hero-desc">ご希望の出発地/目的地を入力してください。</p>
 
             <div className="direction-toggle">
