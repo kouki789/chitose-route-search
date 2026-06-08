@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CHITOSE_STATION, BUS_STOP, UNIVERSITY, TRANSFER_MIN, formatTime } from '../../utils/schedule'
+import { CHITOSE_STATION, BUS_STOP, UNIVERSITY, TRANSFER_MIN, STOP_KEN, STOP_HON, ROUTE_STOPS, formatTime } from '../../utils/schedule'
 import { diffMinutes, formatMinutes } from '../../utils/routeLogic'
 
 // ── カウントダウン ──────────────────────────────────────────────────────────
@@ -20,13 +20,58 @@ function Countdown({ bus }) {
   return <span className={`countdown ${mins < 3 ? 'countdown--urgent' : ''}`}>{text}</span>
 }
 
+// ── 停車バス停ポップアップ ──────────────────────────────────────────────────
+
+function BusStopsPopup({ bus, onClose }) {
+  const stops = ROUTE_STOPS[bus.stop] ?? []
+
+  function calcTime(stop) {
+    return formatTime(new Date(bus.dep.getTime() + stop.min * 60000))
+  }
+
+  return (
+    <div className="stops-overlay" onClick={onClose}>
+      <div className="stops-popup" onClick={e => e.stopPropagation()}>
+        <div className="stops-popup-header">
+          <span>停車バス停（{bus.stop}乗り場）</span>
+          <button type="button" className="stops-popup-close" onClick={onClose}>✕</button>
+        </div>
+        <ol className="stops-list">
+          {stops.map((stop, i) => {
+            const isFirst = i === 0
+            const isLast  = i === stops.length - 1
+            const isKey   = isFirst || isLast || stop.name === STOP_KEN || stop.name === STOP_HON
+            return (
+              <li
+                key={stop.name}
+                className={[
+                  'stops-item',
+                  isFirst ? 'stops-item--first' : '',
+                  isLast  ? 'stops-item--last'  : '',
+                  isKey   ? 'stops-item--key'   : '',
+                ].filter(Boolean).join(' ')}
+              >
+                <span className="stops-dot" />
+                <span className="stops-name">{stop.name}</span>
+                <span className="stops-time">{calcTime(stop)}</span>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+    </div>
+  )
+}
+
 // ── バス結果表示 ────────────────────────────────────────────────────────────
 
 function BusResultView({ br }) {
+  const [popupBus, setPopupBus] = useState(null)
   if (br.status === 'none') {
     return <div className="transit-error">⚠️ {br.message}</div>
   }
   const statusClass = { good: 'bus-status--good', tight: 'bus-status--tight', long: 'bus-status--long' }[br.status] ?? ''
+
   return (
     <div>
       {br.message && <div className={`bus-status ${statusClass}`}>{br.message}</div>}
@@ -41,16 +86,22 @@ function BusResultView({ br }) {
             <div className="bus-arr-row">
               研究棟 {formatTime(bus.kenArr)}着 ／ 本部棟 {formatTime(bus.honArr)}着
             </div>
+            {ROUTE_STOPS[bus.stop] && (
+              <button type="button" className="stops-show-btn" onClick={() => setPopupBus(bus)}>
+                停車バス停を見る ▶
+              </button>
+            )}
           </span>
         ))}
       </div>
+      {popupBus && <BusStopsPopup bus={popupBus} onClose={() => setPopupBus(null)} />}
     </div>
   )
 }
 
 // ── 経路ステップ ────────────────────────────────────────────────────────────
 
-function TransitSteps({ steps, fallbackDep, fallbackArr }) {
+function TransitSteps({ steps, fallbackDep, fallbackArr, originOverride }) {
   if (!steps || steps.length === 0) {
     return fallbackDep && fallbackArr
       ? <div className="transit-fallback">🚃 {fallbackDep}発 → {fallbackArr}着</div>
@@ -65,12 +116,20 @@ function TransitSteps({ steps, fallbackDep, fallbackArr }) {
     const icon = STEP_ICON[step.type] ?? '🚃'
     const cls  = STEP_CLASS[step.type] ?? 'transit'
     if (step.type === 'walk') {
+      const fromLabel = (i === 0 && originOverride) ? originOverride : step.from
       items.push(
         <div key={`s${i}`} className="transit-step transit-step--walk">
           <span className="step-icon">{icon}</span>
           <div className="step-detail">
             <span className="step-line">{step.line || '徒歩'}</span>
-            <span className="step-stations">{step.from} → {step.to}</span>
+            <div className="step-row">
+              <span className="step-station">{fromLabel}</span>
+              {step.dep && <span className="step-time">{step.dep}発</span>}
+            </div>
+            <div className="step-row">
+              <span className="step-station">{step.to}</span>
+              {step.arr && <span className="step-time">{step.arr}着</span>}
+            </div>
           </div>
         </div>
       )
@@ -167,6 +226,7 @@ export default function RouteResult({ result }) {
                 steps={result.transit1.steps}
                 fallbackDep={result.transit1.depTime}
                 fallbackArr={result.transit1.arrTime}
+                originOverride={result.origin}
               />
             </>
           )}

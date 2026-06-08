@@ -30,6 +30,49 @@
   margin-bottom: 1rem;
 }
 
+/* ===== バス停セレクター ===== */
+.bus-stop-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 480px;
+  margin: 0 auto 0.75rem;
+}
+
+.bus-stop-label {
+  font-size: 0.78rem;
+  color: #666;
+  margin-right: 0.2rem;
+  white-space: nowrap;
+}
+
+.bus-stop-chip {
+  padding: 0.25rem 0.7rem;
+  border: 1.5px solid #d0d0e0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  color: #444;
+}
+
+.bus-stop-chip:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.bus-stop-chip--active {
+  border-color: #6366f1;
+  background: #6366f1;
+  color: #fff;
+}
+
+.bus-stop-chip--active:hover {
+  color: #fff;
+}
+
 /* ===== バスピッカー ===== */
 .bus-picker {
   max-width: 480px;
@@ -665,10 +708,148 @@
   flex-wrap: wrap;
 }
 
+.bus-dep-sub {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
 .bus-arr-row {
   font-size: 0.78rem;
   font-weight: 500;
   opacity: 0.75;
+}
+
+/* ===== 停車バス停ポップアップ ===== */
+.stops-show-btn {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 20px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+.stops-show-btn:hover { opacity: 1; }
+
+.bus-time:not(.next) .stops-show-btn {
+  border-color: #c0c0d0;
+  color: #444;
+}
+
+.stops-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.stops-popup {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+}
+
+.stops-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.stops-popup-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #888;
+  line-height: 1;
+  padding: 0.2rem;
+}
+.stops-popup-close:hover { color: #333; }
+
+.stops-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.stops-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 1.1rem;
+  position: relative;
+}
+
+/* 縦線 */
+.stops-item:not(.stops-item--last)::after {
+  content: '';
+  position: absolute;
+  left: calc(1.1rem + 6px);
+  top: calc(50% + 7px);
+  width: 2px;
+  height: calc(100% - 4px);
+  background: #d0d0e8;
+}
+
+.stops-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d0d0e8;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #b0b0cc;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.stops-item--first .stops-dot,
+.stops-item--last .stops-dot {
+  background: #6366f1;
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+.stops-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #333;
+}
+
+.stops-item--key .stops-name {
+  font-weight: 700;
+  color: #333;
+}
+
+.stops-item--first .stops-name,
+.stops-item--last .stops-name {
+  color: #4f52c8;
+}
+
+.stops-time {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #999;
+  white-space: nowrap;
+}
+
+.stops-item--key .stops-time {
+  font-weight: 700;
+  color: #6366f1;
 }
 
 .countdown {

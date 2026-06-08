@@ -26,99 +26,20 @@ $airportNote = null;
 if (isset($AIRPORT_MAP[$from])) { $airportNote = $AIRPORT_MAP[$from]['note']; $from = $AIRPORT_MAP[$from]['station']; }
 if (isset($AIRPORT_MAP[$to]))   { $airportNote = ($airportNote ? $airportNote . ' ' : '') . $AIRPORT_MAP[$to]['note']; $to = $AIRPORT_MAP[$to]['station']; }
 
-// ── 住所検知 → 最寄り駅名に変換 ─────────────────────────────────────────────
-function isAddress($s) {
-    return mb_strpos($s, '丁目') !== false || mb_strpos($s, '番地') !== false;
-}
-
-function findNearestStation($lat, $lon) {
-    $query = "[out:json][timeout:8];"
-           . "(node[\"railway\"=\"station\"](around:2000,{$lat},{$lon});"
-           . "node[\"railway\"=\"stop\"](around:2000,{$lat},{$lon});"
-           . "node[\"railway\"=\"halt\"](around:2000,{$lat},{$lon}););"
-           . "out body;";
-    $ch = curl_init('https://overpass-api.de/api/interpreter');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: text/plain']);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'chitose-route-search/1.0 (educational project)');
-    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    $result = curl_exec($ch);
-    curl_close($ch);
-    if (!$result) return null;
-    $data = json_decode($result, true);
-    if (empty($data['elements'])) return null;
-    $nearest = null;
-    $minDist = PHP_FLOAT_MAX;
-    foreach ($data['elements'] as $el) {
-        $d = hypot($el['lat'] - $lat, $el['lon'] - $lon);
-        if ($d < $minDist) { $minDist = $d; $nearest = $el; }
-    }
-    return isset($nearest['tags']['name']) ? $nearest['tags']['name'] : null;
-}
-
-function nominatimSearch($q) {
-    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
-        'q' => $q, 'format' => 'json', 'limit' => 1, 'countrycodes' => 'jp',
-    ]);
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'chitose-route-search/1.0 (educational project)');
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    $result = curl_exec($ch);
-    curl_close($ch);
-    if (!$result) return null;
-    $data = json_decode($result, true);
-    return !empty($data[0]['lat']) ? $data[0] : null;
-}
-
-function resolveAddress($address) {
-    $cacheFile = sys_get_temp_dir() . '/geocache_' . md5($address) . '.txt';
-    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 86400) {
-        return file_get_contents($cacheFile) ?: null;
-    }
-    $stripped = preg_replace('/\d+-\d+$/', '', trim($address));
-    $candidates = [$stripped, '北海道' . $stripped, $address, '北海道' . $address];
-    $lat = null; $lon = null;
-    foreach ($candidates as $q) {
-        $hit = nominatimSearch($q);
-        if ($hit) { $lat = (float)$hit['lat']; $lon = (float)$hit['lon']; break; }
-    }
-    if (!$lat) { file_put_contents($cacheFile, ''); return null; }
-    $station = findNearestStation($lat, $lon);
-    if ($station) file_put_contents($cacheFile, $station);
-    return $station;
-}
-
 // UI 表示用の disambig suffix（例：池田（北海道）→ 池田）を除去
 $from = preg_replace('/（[^）]*）$/', '', $from);
 $to   = preg_replace('/（[^）]*）$/', '', $to);
 
-if (isAddress($from)) {
-    $station = resolveAddress($from);
-    if ($station) $from = $station;
-}
-if (isAddress($to)) {
-    $station = resolveAddress($to);
-    if ($station) $to = $station;
-}
-
-$isArrival = ($type === 4);
-$params = http_build_query(array_filter([
+$params = http_build_query([
     'from' => $from, 'to' => $to,
     'y' => $y, 'm' => $m, 'd' => $d,
     'hh' => $hh, 'm1' => $m1, 'm2' => $m2,
     'type' => $type,
-    'ticket' => 'ic', 'expkind' => 1, 'ws' => 3,
+    'ticket' => 'ic', 'expkind' => 1, 'userpass' => 1, 'ws' => 3,
     'al' => 1, 'shin' => 1, 'hb' => 1, 'lb' => 1, 'sr' => 1,
-    // 着時刻指定(type=4)と発時刻指定(type=1)でパラメータが異なる
-    'ex'       => $isArrival ? 1 : 0,
-    's'        => $isArrival ? 1 : 0,
-    'userpass' => $isArrival ? 1 : null,
-], fn($v) => $v !== null));
+    'ex' => 1,
+    's'  => ($type === 4) ? 1 : 0,
+]);
 
 $url = 'https://transit.yahoo.co.jp/search/result?' . $params;
 
@@ -170,7 +91,31 @@ if (empty($featureList)) {
     exit;
 }
 
-$item    = $featureList[0];
+// transit エッジ（徒歩以外）を含むかチェック
+function hasTransitEdge($item) {
+    $edges = isset($item['edgeInfoList']) ? $item['edgeInfoList'] : [];
+    foreach ($edges as $e) {
+        $name = '';
+        foreach (['railName', 'lineName', 'busLineName'] as $f) {
+            if (!empty($e[$f])) { $name = $e[$f]; break; }
+        }
+        if (!empty($e['airlineName'])) $name = $e['airlineName'];
+        if ($name && mb_strpos($name, '徒歩') === false) return true;
+    }
+    return false;
+}
+
+// transit ステップを持つ候補を優先し、その中で最安・最速を選択
+$withTransit = array_values(array_filter($featureList, 'hasTransitEdge'));
+$pool = !empty($withTransit) ? $withTransit : $featureList;
+$item = $pool[0];
+foreach ($pool as $fi) {
+    $cp = isset($fi['summaryInfo']['totalPrice'])    ? (float)$fi['summaryInfo']['totalPrice']    : PHP_FLOAT_MAX;
+    $bp = isset($item['summaryInfo']['totalPrice'])  ? (float)$item['summaryInfo']['totalPrice']  : PHP_FLOAT_MAX;
+    $ct = isset($fi['summaryInfo']['totalTime'])     ? (float)$fi['summaryInfo']['totalTime']     : PHP_FLOAT_MAX;
+    $bt = isset($item['summaryInfo']['totalTime'])   ? (float)$item['summaryInfo']['totalTime']   : PHP_FLOAT_MAX;
+    if ($cp < $bp || ($cp === $bp && $ct < $bt)) $item = $fi;
+}
 $summary = isset($item['summaryInfo'])   ? $item['summaryInfo']   : [];
 $edges   = isset($item['edgeInfoList'])  ? $item['edgeInfoList']  : [];
 
@@ -202,18 +147,33 @@ $cnt   = count($edges);
 
 while ($i < $cnt) {
     $cur  = $edges[$i];
-    $next = isset($edges[$i + 1]) ? $edges[$i + 1] : null;
     $rail = getEdgeName($cur);
 
-    if (!$rail || !$next) { $i++; continue; }
+    if (!$rail) { $i++; continue; }
 
-    $sameRail = getEdgeName($next) === $rail;
+    // 同じ railName が続く中間停車駅を読み飛ばし、最初の別 rail エントリを到着駅とする
+    $j        = $i + 1;
+    while ($j < $cnt && getEdgeName($edges[$j]) === $rail) { $j++; }
+
     $stepType = getEdgeType($cur, $rail);
-    $depSt    = isset($cur['stationName'])          ? $cur['stationName']          : '';
-    $arrSt    = isset($next['stationName'])          ? $next['stationName']         : '';
-    $depT     = isset($cur['timeInfo'][0]['time'])   ? $cur['timeInfo'][0]['time']  : '';
-    $arrT     = isset($next['timeInfo'][0]['time'])  ? $next['timeInfo'][0]['time'] : '';
-    $price    = isset($cur['priceInfo']['price'])    ? $cur['priceInfo']['price']   : null;
+    $depSt    = isset($cur['stationName'])        ? $cur['stationName']        : '';
+    $depT     = isset($cur['timeInfo'][0]['time']) ? $cur['timeInfo'][0]['time'] : '';
+    $price    = isset($cur['priceInfo']['price'])  ? $cur['priceInfo']['price']  : null;
+
+    if ($j >= $cnt) {
+        // 末尾に到着エッジがない（住所検索など）→ 最終エッジの情報で補完
+        if ($stepType !== 'walk') {
+            $last = $edges[$cnt - 1];
+            $arrSt2 = isset($last['stationName']) ? $last['stationName'] : '';
+            $arrT2  = isset($last['timeInfo'][0]['time']) ? $last['timeInfo'][0]['time'] : (isset($summary['arrivalTime']) ? $summary['arrivalTime'] : '');
+            $steps[] = ['type' => $stepType, 'from' => $depSt, 'to' => $arrSt2, 'dep' => $depT, 'arr' => $arrT2, 'line' => $rail, 'price' => $price];
+        }
+        break;
+    }
+
+    $arrEdge = $edges[$j];
+    $arrSt   = isset($arrEdge['stationName'])         ? $arrEdge['stationName']         : '';
+    $arrT    = isset($arrEdge['timeInfo'][0]['time'])  ? $arrEdge['timeInfo'][0]['time']  : '';
 
     if ($stepType === 'walk') {
         $steps[] = ['type' => 'walk', 'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail];
@@ -221,7 +181,7 @@ while ($i < $cnt) {
         $steps[] = ['type' => $stepType, 'from' => $depSt, 'to' => $arrSt, 'dep' => $depT, 'arr' => $arrT, 'line' => $rail, 'price' => $price];
     }
 
-    $i += $sameRail ? 2 : 1;
+    $i = $j;
 }
 
 $response = [

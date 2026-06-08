@@ -70,6 +70,39 @@ export default function Home() {
             busResult = { ...busResult, message: `⚠️ ${selectedBus[0]}発には間に合わないため、次の便を表示しています` }
           } else {
             busResult = findOptimalBusResult(busStopArrival, timetable)
+
+            // 待ち時間が5分以上ある場合、バス発車前着を目標に再検索して待ちを最小化
+            if (busResult.waitMin >= 5 && busResult.buses.length > 0) {
+              const targetBusDep = busResult.buses[0].dep
+              // 千歳駅着 = バス出発 - 5分 で到着時刻指定検索
+              const targetStationArr = new Date(targetBusDep.getTime() - 5 * 60000)
+              try {
+                const optimized = await fetchTransit(inputValue.trim(), CHITOSE_STATION, targetStationArr, 4)
+                if (optimized.arrTime) {
+                  const [oh, om] = optimized.arrTime.split(':').map(Number)
+                  const optStation = new Date(now)
+                  optStation.setHours(oh, om, 0, 0)
+                  if (optStation < now) optStation.setDate(optStation.getDate() + 1)
+                  const optBusStop = new Date(optStation.getTime() + TRANSFER_MIN * 60000)
+                  const optBusResult = findOptimalBusResult(optBusStop, timetable)
+
+                  if (optBusResult.buses.length > 0) {
+                    const optDep  = optBusResult.buses[0].dep
+                    const origDep = busResult.buses[0].dep
+                    // より早いバスに乗れる場合、または同じバスで待ち時間が短くなる場合に採用
+                    const isBetter =
+                      optDep < origDep ||
+                      (optDep.getTime() === origDep.getTime() && optBusResult.waitMin < busResult.waitMin)
+                    if (isBetter) {
+                      transit1 = optimized
+                      busResult = optBusResult
+                    }
+                  }
+                }
+              } catch {
+                // 再検索失敗は元の結果を維持
+              }
+            }
           }
         } else {
           busResult = selectedBus

@@ -3,6 +3,39 @@ export const BUS_STOP = '千歳駅前'
 export const UNIVERSITY = '公立千歳科学技術大学'
 export const TRANSFER_MIN = 5
 
+export const STOP_KEN = '研究棟'
+export const STOP_HON = '本部棟'
+
+// 乗り場ごとの停車バス停リスト（{ name: 停留所名, min: 千歳駅前からの所要分 }）
+export const ROUTE_STOPS = {
+  '3番': [
+    { name: '千歳駅前',                     min: 0  },
+    { name: 'もりもと本店前',                min: 3  },
+    { name: '古泉循環器内科クリニック前',    min: 4  },
+    { name: '市役所前',                      min: 5  },
+    { name: '朝日町4丁目',                   min: 6  },
+    { name: '朝日町7丁目',                   min: 7  },
+    { name: 'オフィス・アルカディア入口',    min: 11 },
+    { name: '研究棟',                        min: 18 },
+    { name: '本部棟',                        min: 21 },
+  ],
+  '5番': [
+    { name: '千歳駅前',          min: 0  },
+    { name: 'もりもと本店前',    min: 3  },
+    { name: '古泉循環器内科クリニック前', min: 4 },
+    { name: '市役所前',          min: 5  },
+    { name: '朝日町4丁目',       min: 6  },
+    { name: '朝日町7丁目',       min: 7  },
+    { name: '南千歳駅',          min: 11 },
+    { name: 'エアカーゴ前',      min: 12 },
+    { name: '空港国内線２８番',  min: 13 },
+    { name: '空港国内線1番',     min: 14 },
+    { name: '空港国際線85番',    min: 17 },
+    { name: '研究棟',            min: 24 },
+    { name: '本部棟',            min: 25 },
+  ],
+}
+
 // 往路 [千歳駅前dep, 研究棟arr, 本部棟arr, 乗り場]
 const WEEKDAY = [
   ['07:14', '07:32', '07:35', '3番'],
